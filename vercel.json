@@ -3,7 +3,7 @@
   "name": "pdf-ocr-app",
   "builds": [
     {
-      "src": "api/index.py",
+      "src": "api/app.py",
       "use": "@vercel/python",
       "config": {
         "maxLambdaSize": "50mb",
@@ -22,7 +22,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/api/index.py"
+      "dest": "/api/app.py"
     }
   ],
   "env": {

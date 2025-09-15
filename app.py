@@ -543,7 +543,8 @@ def handle_chat_message(data):
         logger.error(f"채팅 처리 오류: {e}")
         emit('chat_response', {'error': f'처리 중 오류가 발생했습니다: {str(e)}'})
 
-if __name__ == '__main__':
+def start_app():
+    """앱 시작 함수 - Vercel과 로컬 환경 모두 지원"""
     logger.info("🚀 PDF OCR 웹 애플리케이션 시작...")
     logger.info(f"GPT API 상태: {'✅ 사용 가능' if analyzer.gpt_available else '❌ 사용 불가'}")
     
@@ -568,3 +569,11 @@ if __name__ == '__main__':
     else:
         # 프로덕션 환경
         socketio.run(app, host='0.0.0.0', port=8080, debug=False, allow_unsafe_werkzeug=True)
+
+# Vercel 환경에서는 import만 되고 실행되지 않음
+# 로컬 환경에서만 실행
+if __name__ == '__main__':
+    start_app()
+
+# Vercel용 WSGI 앱 export
+application = app
