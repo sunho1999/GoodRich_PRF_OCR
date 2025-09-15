@@ -54,10 +54,12 @@ pip install -r requirements.txt
 4. **환경변수 설정**
 ```bash
 # .env 파일 생성
-cp .env.example .env
+touch .env
 
-# .env 파일에 OpenAI API 키 설정
-OPENAI_API_KEY=your_openai_api_key_here
+# .env 파일에 다음 내용 추가:
+echo "OPENAI_API_KEY=your_openai_api_key_here" >> .env
+echo "FLASK_ENV=production" >> .env
+echo "FLASK_DEBUG=false" >> .env
 ```
 
 5. **애플리케이션 실행**
@@ -115,20 +117,40 @@ docker-compose up -d
 
 ### Vercel 배포
 
-1. **Vercel 계정 연동**
+#### 1. Vercel 프로젝트 생성
+1. [Vercel](https://vercel.com)에 로그인
+2. "New Project" 클릭
+3. GitHub 저장소 연결: `sunho1999/GoodRich_PRF_OCR`
+4. Framework Preset: "Other" 선택
+5. Deploy 클릭
+
+#### 2. 환경변수 설정
+Vercel 대시보드 → Project Settings → Environment Variables:
+```
+OPENAI_API_KEY = your_openai_api_key_here
+FLASK_ENV = production
+FLASK_DEBUG = false
+```
+
+#### 3. GitHub Secrets 설정 (자동 배포용)
+GitHub 저장소 → Settings → Secrets and variables → Actions:
+```
+VERCEL_TOKEN = your_vercel_token
+VERCEL_ORG_ID = your_org_id
+VERCEL_PROJECT_ID = your_project_id
+```
+
+**Vercel 토큰 생성 방법:**
+1. Vercel 대시보드 → Settings → Tokens
+2. "Create Token" 클릭
+3. 토큰을 GitHub Secrets에 추가
+
+#### 4. 로컬 Vercel CLI 배포 (선택사항)
 ```bash
 npm i -g vercel
 vercel login
-```
-
-2. **프로젝트 배포**
-```bash
 vercel --prod
 ```
-
-3. **환경변수 설정**
-- Vercel 대시보드에서 Environment Variables 설정
-- `OPENAI_API_KEY` 추가
 
 ### GitHub Actions CI/CD
 
