@@ -1,14 +1,10 @@
-name: Build and Deploy to Vercel
+name: Build and Deploy to EC2
 
 on:
   push:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
-
-env:
-  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
 jobs:
   test:
@@ -60,8 +56,18 @@ jobs:
       run: |
         # 간단한 헬스 체크
         docker run --rm pdf-ocr-app:${{ github.sha }} python -c "print('✅ Docker build successful')"
+        
+    - name: Save Docker image
+      run: |
+        docker save pdf-ocr-app:${{ github.sha }} | gzip > pdf-ocr-app.tar.gz
+        
+    - name: Upload Docker image artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: docker-image
+        path: pdf-ocr-app.tar.gz
 
-  deploy:
+  deploy-to-ec2:
     runs-on: ubuntu-latest
     needs: [test, docker-build]
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
@@ -70,14 +76,47 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Install Vercel CLI
-      run: npm install --global vercel@latest
-      
-    - name: Pull Vercel Environment Information
-      run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-      
-    - name: Build Project Artifacts
-      run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-      
-    - name: Deploy Project Artifacts to Vercel
-      run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+    - name: Download Docker image artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: docker-image
+        path: ./
+        
+    - name: Deploy to EC2
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        port: ${{ secrets.EC2_PORT }}
+        script: |
+          # EC2에서 실행할 배포 스크립트
+          cd /home/ubuntu/pdf-ocr-app
+          
+          # 기존 컨테이너 정지 및 제거
+          docker stop pdf-ocr-app || true
+          docker rm pdf-ocr-app || true
+          
+          # 기존 이미지 제거
+          docker rmi pdf-ocr-app:latest || true
+          
+          # 새 이미지 로드
+          gunzip -c pdf-ocr-app.tar.gz | docker load
+          
+          # 새 컨테이너 실행
+          docker run -d \
+            --name pdf-ocr-app \
+            --restart unless-stopped \
+            -p 8080:8080 \
+            -e OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" \
+            -e FLASK_DEBUG=False \
+            -v /home/ubuntu/pdf-ocr-app/data:/app/data \
+            -v /home/ubuntu/pdf-ocr-app/logs:/app/logs \
+            -v /home/ubuntu/pdf-ocr-app/static/uploads:/app/static/uploads \
+            pdf-ocr-app:${{ github.sha }}
+          
+          # 헬스 체크
+          sleep 10
+          curl -f http://localhost:8080 || exit 1
+          
+          echo "✅ EC2 배포 완료!"
