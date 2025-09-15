@@ -1,28 +1,17 @@
 # 웹 프레임워크
-Flask==3.1.2
-Flask-SocketIO==5.5.1
-Werkzeug==3.1.3
+Flask>=3.0.0,<4.0.0
+Werkzeug>=3.0.0,<4.0.0
 
 # OpenAI API
-openai==1.3.7
+openai>=1.3.0,<2.0.0
 
-# PDF 처리
-PyMuPDF==1.20.2
-pdfminer.six==20231228
+# PDF 처리 (Vercel 호환)
+PyMuPDF>=1.20.0,<2.0.0
 
-# OCR 및 이미지 처리 (간소화)
-opencv-python-headless==4.10.0.84
-Pillow==10.1.0
+# 기본 유틸리티
+python-dotenv>=1.0.0
+requests>=2.25.0,<3.0.0
+httpx>=0.24.0,<1.0.0
 
-# 유틸리티
-python-dotenv==1.0.0
-requests==2.31.0
-beautifulsoup4==4.12.2
-lxml==4.9.3
-numpy==1.24.3
-pydantic==2.5.0
-pydantic-settings==2.1.0
-httpx==0.25.2
-
-# 웹 스크래핑
-urlextract==1.8.0
+# 설정 관리
+pydantic>=2.0.0,<3.0.0
