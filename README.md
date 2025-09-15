@@ -111,6 +111,22 @@ docker-compose up -d
 - 완료 후 상세 분석 결과 표시
 - 다운로드 기능으로 결과 저장 가능
 
+## 🌳 브랜치 전략
+
+### Git Flow
+- **`main`**: 프로덕션 배포용 안정 브랜치
+- **`develop`**: 개발 통합 브랜치
+- **`feature/*`**: 기능 개발 브랜치
+
+### 워크플로우
+1. **개발**: `develop` 브랜치에서 작업
+2. **테스트**: Push 시 자동 CI/CD 실행
+3. **배포**: `main` 브랜치로 PR → 승인 후 프로덕션 배포
+
+### GitHub Actions
+- **Development**: `develop` 브랜치 → 테스트 및 빌드 검증
+- **Production**: `main` 브랜치 → Vercel 프로덕션 배포
+
 ## 🚀 배포
 
 ### Vercel 배포
