@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF OCR 보험상품 분석</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-file-pdf me-2"></i>
+                PDF OCR 보험분석
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text">
+                    <i class="fas fa-{{ 'check-circle text-success' if gpt_available else 'exclamation-triangle text-warning' }}"></i>
+                    GPT API {{ '활성화' if gpt_available else '비활성화' }}
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Hero Section -->
+            <div class="hero-section text-center mb-5">
+                <h1 class="display-4 fw-bold text-primary mb-3">
+                    <i class="fas fa-brain me-3"></i>
+                    AI 보험상품 분석 시스템
+                </h1>
+                <p class="lead text-muted">
+                    PDF 문서의 OCR 인식과 GPT AI를 활용한 전문적인 보험상품 분석 및 비교 서비스
+                </p>
+            </div>
+
+            <!-- Analysis Cards -->
+            <div class="row g-4 mb-5">
+                <!-- Individual Analysis Card -->
+                <div class="col-lg-6">
+                    <div class="analysis-card h-100">
+                        <div class="card-header">
+                            <h3><i class="fas fa-search me-2"></i>개별 상품 분석</h3>
+                            <p>단일 상품에 대한 상세한 분석을 제공합니다</p>
+                        </div>
+                        <div class="card-body">
+                            <form id="individualForm">
+                                <div class="mb-3">
+                                    <label class="form-label">상품명</label>
+                                    <input type="text" class="form-control" id="individual_product_name" 
+                                           placeholder="예: 삼성화재 실손보험" value="상품 A">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <div class="nav nav-pills source-tabs" role="tablist">
+                                        <button class="nav-link active" id="individual-url-tab" data-bs-toggle="pill" 
+                                                data-bs-target="#individual-url" type="button">
+                                            <i class="fas fa-link me-1"></i>URL
+                                        </button>
+                                        <button class="nav-link" id="individual-file-tab" data-bs-toggle="pill" 
+                                                data-bs-target="#individual-file" type="button">
+                                            <i class="fas fa-upload me-1"></i>파일 업로드
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="tab-content">
+                                    <div class="tab-pane fade show active" id="individual-url">
+                                        <div class="mb-3">
+                                            <label class="form-label">PDF URL</label>
+                                            <input type="url" class="form-control" id="individual_url" 
+                                                   placeholder="https://example.com/document.pdf">
+                                        </div>
+                                    </div>
+                                    <div class="tab-pane fade" id="individual-file">
+                                        <div class="mb-3">
+                                            <label class="form-label">PDF 파일</label>
+                                            <input type="file" class="form-control" id="individual_file" accept=".pdf">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary btn-lg w-100">
+                                    <i class="fas fa-analytics me-2"></i>분석 시작
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Comparison Analysis Card -->
+                <div class="col-lg-6">
+                    <div class="analysis-card h-100">
+                        <div class="card-header">
+                            <h3><i class="fas fa-balance-scale me-2"></i>2개 상품 비교</h3>
+                            <p>두 상품 간의 상세한 비교 분석을 제공합니다</p>
+                        </div>
+                        <div class="card-body">
+                            <form id="compareForm">
+                                <!-- 첫 번째 상품 -->
+                                <div class="product-section mb-4">
+                                    <h5 class="text-primary">
+                                        <i class="fas fa-file-alt me-2"></i>첫 번째 상품
+                                    </h5>
+                                    <div class="mb-3">
+                                        <label class="form-label">상품명</label>
+                                        <input type="text" class="form-control" id="product1_name" 
+                                               placeholder="예: 삼성화재 실손보험" value="상품 A">
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <div class="nav nav-pills source-tabs" role="tablist">
+                                            <button class="nav-link active" id="product1-url-tab" data-bs-toggle="pill" 
+                                                    data-bs-target="#product1-url" type="button">
+                                                <i class="fas fa-link me-1"></i>URL
+                                            </button>
+                                            <button class="nav-link" id="product1-file-tab" data-bs-toggle="pill" 
+                                                    data-bs-target="#product1-file" type="button">
+                                                <i class="fas fa-upload me-1"></i>파일
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="tab-content">
+                                        <div class="tab-pane fade show active" id="product1-url">
+                                            <input type="url" class="form-control" id="product1_url" 
+                                                   placeholder="https://example.com/document1.pdf">
+                                        </div>
+                                        <div class="tab-pane fade" id="product1-file">
+                                            <input type="file" class="form-control" id="product1_file" accept=".pdf">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 두 번째 상품 -->
+                                <div class="product-section mb-4">
+                                    <h5 class="text-secondary">
+                                        <i class="fas fa-file-alt me-2"></i>두 번째 상품
+                                    </h5>
+                                    <div class="mb-3">
+                                        <label class="form-label">상품명</label>
+                                        <input type="text" class="form-control" id="product2_name" 
+                                               placeholder="예: 현대해상 실손보험" value="상품 B">
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <div class="nav nav-pills source-tabs" role="tablist">
+                                            <button class="nav-link active" id="product2-url-tab" data-bs-toggle="pill" 
+                                                    data-bs-target="#product2-url" type="button">
+                                                <i class="fas fa-link me-1"></i>URL
+                                            </button>
+                                            <button class="nav-link" id="product2-file-tab" data-bs-toggle="pill" 
+                                                    data-bs-target="#product2-file" type="button">
+                                                <i class="fas fa-upload me-1"></i>파일
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="tab-content">
+                                        <div class="tab-pane fade show active" id="product2-url">
+                                            <input type="url" class="form-control" id="product2_url" 
+                                                   placeholder="https://example.com/document2.pdf">
+                                        </div>
+                                        <div class="tab-pane fade" id="product2-file">
+                                            <input type="file" class="form-control" id="product2_file" accept=".pdf">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-secondary btn-lg w-100">
+                                    <i class="fas fa-balance-scale me-2"></i>비교 분석 시작
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div id="resultsSection" class="results-section" style="display: none;">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="results-card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h3><i class="fas fa-chart-line me-2"></i>분석 결과</h3>
+                                <div class="result-actions">
+                                    <button class="btn btn-success btn-sm" id="chatbotBtn" onclick="openChatbot()">
+                                        <i class="fas fa-robot me-1"></i>AI 상담
+                                    </button>
+                                    <button class="btn btn-outline-primary btn-sm" onclick="downloadResults()">
+                                        <i class="fas fa-download me-1"></i>다운로드
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="analysisResults" class="analysis-content"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Chatbot Modal -->
+    <div class="modal fade" id="chatbotModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-robot me-2"></i>AI 보험 상담
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div class="chat-container">
+                        <div id="chatMessages" class="chat-messages"></div>
+                        <div class="chat-input-container">
+                            <div class="input-group">
+                                <textarea id="chatInput" class="form-control" rows="2" 
+                                         placeholder="보험 상품에 대해 궁금한 점을 물어보세요..."></textarea>
+                                <button class="btn btn-primary" id="sendChatBtn">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        분석된 상품 정보를 바탕으로 AI가 답변합니다
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="loading-content">
+            <div class="spinner-border text-primary mb-3" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <h4>분석 중...</h4>
+            <p id="loadingMessage">PDF 문서를 분석하고 있습니다. 잠시만 기다려주세요.</p>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
+
+
+
+
