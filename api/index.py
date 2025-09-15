@@ -20,24 +20,46 @@ except ImportError:
 try:
     from openai import OpenAI
     import os
-    from dotenv import load_dotenv
-    load_dotenv()
     
-    # OpenAI 클라이언트 초기화
+    # Vercel 환경에서는 dotenv 없이 직접 환경변수 사용
     api_key = os.getenv('OPENAI_API_KEY')
-    if api_key and not api_key.startswith('your_'):
+    
+    # 디버깅용 로그
+    print(f"🔑 API Key found: {'Yes' if api_key else 'No'}")
+    if api_key:
+        print(f"🔑 API Key starts with: {api_key[:10]}...")
+    
+    if api_key and len(api_key.strip()) > 20 and not api_key.startswith('your_'):
         try:
             import httpx
             http_client = httpx.Client(timeout=30.0, proxies=None)
-            openai_client = OpenAI(api_key=api_key, http_client=http_client)
+            openai_client = OpenAI(api_key=api_key.strip(), http_client=http_client)
+            
+            # API 키 검증 테스트
+            test_response = openai_client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{"role": "user", "content": "test"}],
+                max_tokens=1
+            )
+            
             GPT_AVAILABLE = True
-        except:
-            openai_client = OpenAI(api_key=api_key)
-            GPT_AVAILABLE = True
+            print("✅ GPT API 검증 성공!")
+        except Exception as e:
+            print(f"❌ GPT API 검증 실패: {e}")
+            try:
+                openai_client = OpenAI(api_key=api_key.strip())
+                GPT_AVAILABLE = True
+                print("✅ GPT API 기본 초기화 성공!")
+            except Exception as e2:
+                print(f"❌ GPT API 기본 초기화도 실패: {e2}")
+                GPT_AVAILABLE = False
+                openai_client = None
     else:
+        print(f"❌ API 키 문제: length={len(api_key) if api_key else 0}")
         GPT_AVAILABLE = False
         openai_client = None
-except ImportError:
+except ImportError as e:
+    print(f"❌ OpenAI 라이브러리 import 실패: {e}")
     GPT_AVAILABLE = False
     openai_client = None
 

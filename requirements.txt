@@ -9,8 +9,10 @@ openai>=1.3.0,<2.0.0
 PyMuPDF>=1.20.0,<2.0.0
 pdfminer.six>=20220319
 
-# 이미지 처리 (기본)
+# 이미지 처리 및 OCR
 Pillow>=10.0.0,<11.0.0
+numpy>=1.24.0,<2.0.0
+opencv-python-headless>=4.8.0
 
 # 기본 유틸리티
 python-dotenv>=1.0.0
