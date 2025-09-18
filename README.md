@@ -119,7 +119,7 @@ docker-compose up -d
 
 #### 1. Vercel 프로젝트 생성
 1. [Vercel](https://vercel.com)에 로그인
-2. "New Project" 클릭
+2. "New Project" 클릭메모계@  
 3. GitHub 저장소 연결: `sunho1999/GoodRich_PRF_OCR`
 4. Framework Preset: "Other" 선택
 5. Deploy 클릭
