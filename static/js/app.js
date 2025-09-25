@@ -212,7 +212,8 @@ class PDFAnalyzer {
             }
 
             // 사용자 정의 프롬프트 가져오기
-            const customPrompt = document.getElementById('custom_prompt').value.trim();
+            const customPromptElement = document.getElementById('custom_prompt');
+            const customPrompt = customPromptElement ? customPromptElement.value.trim() : '';
 
             // 비교 분석 요청
             const response = await fetch('/api/analyze/compare', {
@@ -840,7 +841,7 @@ class PDFAnalyzer {
                 header: `📊 텍스트 기반 분석 결과`,
                 basic_info: basicInfo,
                 premium_info: premiumInfo,
-                coverage: result.content.substring(0, 1000) + '...',  // 첫 1000자를 보장 정보로
+                coverage: result.content ? result.content.substring(0, 1000) + '...' : '',  // 첫 1000자를 보장 정보로
                 raw_content: result.content
             };
             
@@ -1011,13 +1012,13 @@ class PDFAnalyzer {
             }
             
             // 하이픈(-) 으로 시작하는 정보도 파싱
-            if (trimmed.startsWith('- 상품명:')) {
+            if (trimmed && trimmed.startsWith('- 상품명:')) {
                 info.name = trimmed.substring(trimmed.indexOf(':') + 1).trim();
-            } else if (trimmed.startsWith('- 상품코드:')) {
+            } else if (trimmed && trimmed.startsWith('- 상품코드:')) {
                 info.code = trimmed.substring(trimmed.indexOf(':') + 1).trim();
-            } else if (trimmed.startsWith('- 상품타입:')) {
+            } else if (trimmed && trimmed.startsWith('- 상품타입:')) {
                 info.type = trimmed.substring(trimmed.indexOf(':') + 1).trim();
-            } else if (trimmed.startsWith('- 회사:')) {
+            } else if (trimmed && trimmed.startsWith('- 회사:')) {
                 info.company = trimmed.substring(trimmed.indexOf(':') + 1).trim();
             }
         }
@@ -1112,23 +1113,23 @@ class PDFAnalyzer {
             const trimmed = line.trim();
             
             // 월보험료 정보
-            if (trimmed.includes('월보험료') && trimmed.includes(':') && !info.monthly) {
+            if (trimmed && trimmed.includes('월보험료') && trimmed.includes(':') && !info.monthly) {
                 info.monthly = trimmed.split(':')[1]?.trim();
-            } else if (trimmed.startsWith('- 월보험료:') && !info.monthly) {
+            } else if (trimmed && trimmed.startsWith('- 월보험료:') && !info.monthly) {
                 info.monthly = trimmed.substring(trimmed.indexOf(':') + 1).trim();
             }
             
             // 납입방식 정보
-            if (trimmed.includes('납입방식') && trimmed.includes(':') && !info.method) {
+            if (trimmed && trimmed.includes('납입방식') && trimmed.includes(':') && !info.method) {
                 info.method = trimmed.split(':')[1]?.trim();
-            } else if (trimmed.startsWith('- 납입방식:') && !info.method) {
+            } else if (trimmed && trimmed.startsWith('- 납입방식:') && !info.method) {
                 info.method = trimmed.substring(trimmed.indexOf(':') + 1).trim();
             }
             
             // 납입기간 정보
-            if (trimmed.includes('납입기간') && trimmed.includes(':') && !info.period) {
+            if (trimmed && trimmed.includes('납입기간') && trimmed.includes(':') && !info.period) {
                 info.period = trimmed.split(':')[1]?.trim();
-            } else if (trimmed.startsWith('- 납입기간:') && !info.period) {
+            } else if (trimmed && trimmed.startsWith('- 납입기간:') && !info.period) {
                 info.period = trimmed.substring(trimmed.indexOf(':') + 1).trim();
             }
         }
@@ -1183,7 +1184,7 @@ class PDFAnalyzer {
         if (extracted.type) result += `상품타입: ${extracted.type}\n`;
         if (extracted.company) result += `회사: ${extracted.company}\n`;
         
-        return result || text.substring(0, 500); // fallback으로 첫 500자
+        return result || (text ? text.substring(0, 500) : ''); // fallback으로 첫 500자
     }
 
     extractPremiumInfoFromFullText(text) {
@@ -1229,7 +1230,7 @@ class PDFAnalyzer {
         if (extracted.method) result += `납입방식: ${extracted.method}\n`;
         if (extracted.period) result += `납입기간: ${extracted.period}\n`;
         
-        return result || text.substring(0, 300); // fallback으로 첫 300자
+        return result || (text ? text.substring(0, 300) : ''); // fallback으로 첫 300자
     }
 
     parseCoverage(content) {
