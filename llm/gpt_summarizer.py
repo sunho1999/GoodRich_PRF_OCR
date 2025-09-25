@@ -134,6 +134,63 @@ class GPTSummarizer:
         other_chars = len(text) - korean_chars
         return int(korean_chars / 2 + other_chars / 4)
     
+    def _normalize_currency_units(self, text: str) -> str:
+        """
+        금액 단위를 통일하여 정확한 비교가 가능하도록 정규화합니다.
+        
+        Args:
+            text: 정규화할 텍스트
+            
+        Returns:
+            금액 단위가 통일된 텍스트
+        """
+        import re
+        
+        # 금액 패턴 매칭 및 단위 통일
+        # 1. 천원 단위 (예: 1,000천원, 1000천원)
+        thousand_pattern = r'([0-9,]+)\s*천원'
+        def replace_thousand(match):
+            amount = match.group(1).replace(',', '')
+            try:
+                value = int(amount) * 1000
+                return f"{value:,}원"
+            except:
+                return match.group(0)
+        text = re.sub(thousand_pattern, replace_thousand, text)
+        
+        # 2. 만원 단위 (예: 1,000만원, 1000만원)
+        ten_thousand_pattern = r'([0-9,]+)\s*만원'
+        def replace_ten_thousand(match):
+            amount = match.group(1).replace(',', '')
+            try:
+                value = int(amount) * 10000
+                return f"{value:,}원"
+            except:
+                return match.group(0)
+        text = re.sub(ten_thousand_pattern, replace_ten_thousand, text)
+        
+        # 3. 억원 단위 (예: 1억원, 1.5억원)
+        hundred_million_pattern = r'([0-9.]+)\s*억원'
+        def replace_hundred_million(match):
+            amount = match.group(1)
+            try:
+                value = float(amount) * 100000000
+                return f"{int(value):,}원"
+            except:
+                return match.group(0)
+        text = re.sub(hundred_million_pattern, replace_hundred_million, text)
+        
+        # 4. 숫자만 있는 경우 (원이 없는 경우) - 문맥에 따라 판단
+        # 보험료 관련 문맥에서 숫자만 있으면 원 단위로 가정
+        premium_context_pattern = r'(월보험료|보험료|납입|보장금액|지급금액)[:：]\s*([0-9,]+)(?![원천만억])'
+        def add_won_unit(match):
+            prefix = match.group(1)
+            amount = match.group(2)
+            return f"{prefix}: {amount}원"
+        text = re.sub(premium_context_pattern, add_won_unit, text)
+        
+        return text
+    
     def _smart_truncate_text(self, text: str, max_input_tokens: int = 100000) -> str:
         """토큰 제한을 고려하여 텍스트를 스마트하게 절단합니다. (GPT-4o-mini 128K 활용)"""
         current_tokens = self._estimate_tokens(text)
@@ -775,7 +832,8 @@ class GPTSummarizer:
             return f"❌ 비교 분석 생성 중 오류 발생: {str(e)}"
     
     def analyze_products_comparison(self, pages1: List[Dict[str, Any]], file1_name: str, 
-                                    pages2: List[Dict[str, Any]], file2_name: str) -> str:
+                                    pages2: List[Dict[str, Any]], file2_name: str, 
+                                    custom_prompt: str = "") -> str:
         """
         두 보험상품의 직접적인 비교 분석을 수행합니다.
         
@@ -796,17 +854,31 @@ class GPTSummarizer:
             if not text1.strip() or not text2.strip():
                 return "❌ 비교할 텍스트가 충분하지 않습니다."
             
+            # 금액 단위 정규화 (두 상품 모두)
+            normalized_text1 = self._normalize_currency_units(text1)
+            normalized_text2 = self._normalize_currency_units(text2)
+            
             # 토큰 제한 고려한 스마트 절단 (두 상품 모두)
-            smart_text1 = self._smart_truncate_text(text1, max_input_tokens=40000)
-            smart_text2 = self._smart_truncate_text(text2, max_input_tokens=40000)
+            smart_text1 = self._smart_truncate_text(normalized_text1, max_input_tokens=40000)
+            smart_text2 = self._smart_truncate_text(normalized_text2, max_input_tokens=40000)
             
             pages1_count = len(pages1)
             pages2_count = len(pages2)
             
             # 종합 비교 분석 프롬프트
+            user_instruction = ""
+            if custom_prompt:
+                user_instruction = f"""
+🚨 **사용자 특별 요청사항**:
+{custom_prompt}
+
+위 요청사항을 반드시 우선적으로 고려하여 분석을 진행해주세요.
+"""
+            
             prompt = f"""
 아래에는 두 가지 보험 상품의 보장 내역이 있습니다. 
 이 두 상품을 고객의 입장에서 쉽게 비교할 수 있도록 정리해 주세요.
+{user_instruction}
 
 **상품 A**: {file1_name}
 페이지 수: {pages1_count}
@@ -824,6 +896,8 @@ class GPTSummarizer:
    - 상품명, 상품코드, 상품타입, 보험회사를 정확히 추출하세요
    - 🚨 **보험료 정보**: 모든 금액은 원본 문서의 정확한 숫자를 그대로 사용하세요
      (예: 92,540원은 절대 92,000원으로 반올림하지 마세요)
+   - 💰 **금액 단위 통일**: 모든 금액은 원 단위로 통일하여 비교하세요
+     (천원, 만원, 억원 등은 모두 원 단위로 변환하여 표시)
 
 2. **보장 항목 자동 식별 및 매칭**
    - 두 문서에서 '보장 항목'을 스스로 식별하세요 

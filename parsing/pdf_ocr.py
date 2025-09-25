@@ -1,4 +1,4 @@
-import fitz  # PyMuPDF
+v음과 같은 import fitz  # PyMuPDF
 import cv2
 import numpy as np
 from PIL import Image

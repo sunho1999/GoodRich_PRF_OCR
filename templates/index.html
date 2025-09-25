@@ -172,6 +172,22 @@
                                     </div>
                                 </div>
                                 
+                                <!-- 사용자 정의 프롬프트 섹션 -->
+                                <div class="custom-prompt-section mb-4">
+                                    <h5 class="text-info">
+                                        <i class="fas fa-edit me-2"></i>분석 프롬프트 설정
+                                    </h5>
+                                    <div class="mb-3">
+                                        <label class="form-label">비교 분석 시 특별히 중점을 둘 내용 (선택사항)</label>
+                                        <textarea class="form-control" id="custom_prompt" rows="3" 
+                                                  placeholder="예: 보험료, 보장 내용, 면책 기간, 갱신 조건 등을 중점적으로 비교해주세요. 특별히 궁금한 점이 있다면 여기에 입력하세요."></textarea>
+                                        <div class="form-text">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            입력한 내용이 분석의 우선순위가 됩니다. 비워두면 기본 분석을 진행합니다.
+                                        </div>
+                                    </div>
+                                </div>
+                                
                                 <button type="submit" class="btn btn-secondary btn-lg w-100">
                                     <i class="fas fa-balance-scale me-2"></i>비교 분석 시작
                                 </button>
@@ -258,6 +274,8 @@
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>
+
+
 
 
 

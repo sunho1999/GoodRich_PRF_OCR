@@ -382,6 +382,9 @@ def analyze_compare():
         source2 = data.get('source2')
         product2_name = data.get('product2_name', '상품 B')
         
+        # 사용자 정의 프롬프트
+        custom_prompt = data.get('custom_prompt', '').strip()
+        
         if not source1 or not source2:
             return jsonify({'success': False, 'error': '비교할 두 개의 소스가 모두 필요합니다.'})
         
@@ -405,10 +408,11 @@ def analyze_compare():
             logger.info("🤖 GPT 종합 비교 분석 시작...")
             
             try:
-                # 새로운 종합 비교 분석 함수 사용
+                # 새로운 종합 비교 분석 함수 사용 (사용자 정의 프롬프트 포함)
                 comparison_analysis = analyzer.gpt_summarizer.analyze_products_comparison(
                     result1['pages'], product1_name,
-                    result2['pages'], product2_name
+                    result2['pages'], product2_name,
+                    custom_prompt=custom_prompt
                 )
                 logger.info(f"📊 종합 비교 분석 결과 길이: {len(comparison_analysis) if comparison_analysis else 0}")
             except Exception as e:

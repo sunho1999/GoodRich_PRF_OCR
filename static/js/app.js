@@ -211,6 +211,9 @@ class PDFAnalyzer {
                 source2Type = 'file';
             }
 
+            // 사용자 정의 프롬프트 가져오기
+            const customPrompt = document.getElementById('custom_prompt').value.trim();
+
             // 비교 분석 요청
             const response = await fetch('/api/analyze/compare', {
                 method: 'POST',
@@ -223,7 +226,8 @@ class PDFAnalyzer {
                     product1_name: product1Name,
                     source2: source2,
                     source2_type: source2Type,
-                    product2_name: product2Name
+                    product2_name: product2Name,
+                    custom_prompt: customPrompt
                 })
             });
 
