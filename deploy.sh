@@ -68,7 +68,7 @@ fi
 cd "$PROJECT_DIR"
 
 # 필요한 디렉토리 생성
-mkdir -p data logs static/uploads
+mkdir -p data logs static/uploads data/pdfs data/chunks data/embeddings
 success_msg "필요한 디렉토리 생성 완료"
 
 # 3. 환경변수 확인
@@ -121,6 +121,9 @@ docker run -d \
     -v "$PROJECT_DIR/data:/app/data" \
     -v "$PROJECT_DIR/logs:/app/logs" \
     -v "$PROJECT_DIR/static/uploads:/app/static/uploads" \
+    -v "$PROJECT_DIR/data/pdfs:/app/data/pdfs" \
+    -v "$PROJECT_DIR/data/chunks:/app/data/chunks" \
+    -v "$PROJECT_DIR/data/embeddings:/app/data/embeddings" \
     pdf-ocr-app:latest || error_exit "컨테이너 실행 실패"
 
 success_msg "컨테이너 실행 완료"
@@ -135,6 +138,12 @@ if curl -f http://localhost:8080 > /dev/null 2>&1; then
     echo "🌐 접속 URL:"
     echo "   http://$(curl -s ifconfig.me):8080"
     echo "   또는 http://localhost:8080 (EC2 내부에서)"
+    echo ""
+    echo "🆕 새로운 기능:"
+    echo "   ✅ 사용자 정의 프롬프트 입력 기능"
+    echo "   ✅ 금액 단위 자동 통일 (천원, 만원, 억원 → 원 단위)"
+    echo "   ✅ 개별 상품 분석 및 2개 상품 비교 분석"
+    echo "   ✅ AI 챗봇 상담 기능"
     echo ""
     echo "📊 컨테이너 상태:"
     docker ps | grep pdf-ocr-app
