@@ -129,15 +129,27 @@ docker rm pdf-ocr-app 2>/dev/null || true
 docker rmi pdf-ocr-app:latest 2>/dev/null || true
 
 echo "💾 디스크 공간 확보..."
-docker system prune -a -f 2>/dev/null || true
+docker system prune -a -f --volumes 2>/dev/null || true
+docker builder prune -a -f 2>/dev/null || true
 docker volume prune -f 2>/dev/null || true
 sudo apt-get clean 2>/dev/null || true
+sudo apt-get autoremove -y 2>/dev/null || true
+sudo apt-get autoclean 2>/dev/null || true
 sudo rm -rf /tmp/* 2>/dev/null || true
 sudo rm -rf /var/tmp/* 2>/dev/null || true
+sudo rm -rf /var/cache/apt/archives/* 2>/dev/null || true
+sudo journalctl --vacuum-time=1d 2>/dev/null || true
+sudo find /var/log -type f -name "*.log" -exec truncate -s 0 {} \; 2>/dev/null || true
 
 # 디스크 사용량 확인
 echo "📊 현재 디스크 사용량:"
 df -h | head -2
+
+# 디스크 공간이 부족하면 경고
+AVAILABLE_SPACE=$(df / | tail -1 | awk '{print $4}')
+if [ "$AVAILABLE_SPACE" -lt 2000000 ]; then
+    warning_msg "디스크 공간이 부족합니다 (${AVAILABLE_SPACE}KB). EC2 인스턴스 스토리지를 확장하세요."
+fi
 
 success_msg "기존 컨테이너 정리 및 디스크 공간 확보 완료"
 

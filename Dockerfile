@@ -12,11 +12,14 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /tmp/* \
     && rm -rf /var/tmp/*
 
-# Python 패키지 설치 (캐시 없이)
+# Python 패키지 설치 (캐시 없이, 단계별 정리)
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt \
+RUN pip install --no-cache-dir --no-deps -r requirements.txt \
+    && pip install --no-cache-dir markupsafe jinja2 \
     && pip cache purge \
-    && rm -rf /root/.cache/pip
+    && rm -rf /root/.cache/pip \
+    && rm -rf /tmp/* \
+    && rm -rf /var/tmp/*
 
 # 애플리케이션 복사
 COPY . .
