@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y \
 
 # Python 패키지 설치 (캐시 없이)
 COPY requirements.txt .
-RUN pip install --no-cache-dir --no-deps -r requirements.txt \
+RUN pip install --no-cache-dir -r requirements.txt \
     && pip cache purge \
     && rm -rf /root/.cache/pip
 
