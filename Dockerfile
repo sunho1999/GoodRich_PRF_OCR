@@ -2,16 +2,21 @@ FROM python:3.9-slim
 
 WORKDIR /app
 
-# 최소한의 시스템 패키지만 설치
+# 최소한의 시스템 패키지만 설치하고 캐시 정리
 RUN apt-get update && apt-get install -y \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /tmp/* \
+    && rm -rf /var/tmp/*
 
-# Python 패키지 설치
+# Python 패키지 설치 (캐시 없이)
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --no-deps -r requirements.txt \
+    && pip cache purge \
+    && rm -rf /root/.cache/pip
 
 # 애플리케이션 복사
 COPY . .

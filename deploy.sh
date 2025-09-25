@@ -122,12 +122,24 @@ else
     success_msg "OPENAI_API_KEY 환경변수 확인됨"
 fi
 
-# 4. 기존 컨테이너 정리
+# 4. 기존 컨테이너 정리 및 디스크 공간 확보
 echo "🧹 기존 컨테이너 정리..."
 docker stop pdf-ocr-app 2>/dev/null || true
 docker rm pdf-ocr-app 2>/dev/null || true
 docker rmi pdf-ocr-app:latest 2>/dev/null || true
-success_msg "기존 컨테이너 정리 완료"
+
+echo "💾 디스크 공간 확보..."
+docker system prune -a -f 2>/dev/null || true
+docker volume prune -f 2>/dev/null || true
+sudo apt-get clean 2>/dev/null || true
+sudo rm -rf /tmp/* 2>/dev/null || true
+sudo rm -rf /var/tmp/* 2>/dev/null || true
+
+# 디스크 사용량 확인
+echo "📊 현재 디스크 사용량:"
+df -h | head -2
+
+success_msg "기존 컨테이너 정리 및 디스크 공간 확보 완료"
 
 # 5. Docker 이미지 빌드
 echo "🏗️  Docker 이미지 빌드..."
