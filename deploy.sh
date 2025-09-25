@@ -67,6 +67,34 @@ fi
 
 cd "$PROJECT_DIR"
 
+# Git 설치 확인
+echo "🔧 Git 설치 확인..."
+if ! command -v git &> /dev/null; then
+    warning_msg "Git이 설치되지 않음. 설치를 진행합니다..."
+    sudo apt-get update
+    sudo apt-get install -y git
+    success_msg "Git 설치 완료"
+else
+    success_msg "Git이 이미 설치됨"
+fi
+
+# GitHub에서 최신 코드 클론 또는 업데이트
+echo "📥 GitHub에서 최신 코드 가져오기..."
+if [ -d ".git" ]; then
+    echo "기존 저장소 업데이트 중..."
+    git pull origin main || error_exit "Git pull 실패"
+    success_msg "기존 저장소 업데이트 완료"
+else
+    echo "새 저장소 클론 중..."
+    git clone https://github.com/sunho1999/GoodRich_PRF_OCR.git . || error_exit "Git clone 실패"
+    success_msg "저장소 클론 완료"
+fi
+
+# 현재 디렉토리 확인
+echo "📂 현재 디렉토리: $(pwd)"
+echo "📋 디렉토리 내용:"
+ls -la
+
 # 필요한 디렉토리 생성
 mkdir -p data logs static/uploads data/pdfs data/chunks data/embeddings
 success_msg "필요한 디렉토리 생성 완료"
@@ -103,9 +131,22 @@ success_msg "기존 컨테이너 정리 완료"
 
 # 5. Docker 이미지 빌드
 echo "🏗️  Docker 이미지 빌드..."
+echo "📂 빌드 디렉토리: $(pwd)"
+echo "📋 빌드 디렉토리 내용:"
+ls -la
+
 if [ ! -f "Dockerfile" ]; then
+    echo "❌ Dockerfile을 찾을 수 없습니다!"
+    echo "📋 현재 디렉토리의 파일들:"
+    ls -la
+    echo "🔍 Dockerfile 검색 중..."
+    find . -name "Dockerfile" -type f 2>/dev/null || echo "Dockerfile을 찾을 수 없습니다."
     error_exit "Dockerfile을 찾을 수 없습니다. 프로젝트 파일을 확인하세요."
 fi
+
+echo "✅ Dockerfile 발견: $(pwd)/Dockerfile"
+echo "📄 Dockerfile 내용 확인:"
+head -10 Dockerfile
 
 docker build -t pdf-ocr-app:latest . || error_exit "Docker 빌드 실패"
 success_msg "Docker 이미지 빌드 완료"
