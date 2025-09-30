@@ -200,6 +200,9 @@ sleep 10
 if curl -f http://localhost:8080 > /dev/null 2>&1; then
     success_msg "애플리케이션이 정상적으로 실행 중입니다!"
     echo ""
+    echo "🔍 해약환급금 표 인식 디버깅 실행..."
+    docker exec pdf-ocr-app python debug_ec2_surrender.py || echo "디버깅 스크립트 실행 실패"
+    echo ""
     echo "🌐 접속 URL:"
     echo "   http://$(curl -s ifconfig.me):8080"
     echo "   또는 http://localhost:8080 (EC2 내부에서)"
@@ -207,6 +210,7 @@ if curl -f http://localhost:8080 > /dev/null 2>&1; then
     echo "🆕 새로운 기능:"
     echo "   ✅ 사용자 정의 프롬프트 입력 기능"
     echo "   ✅ 금액 단위 자동 통일 (천원, 만원, 억원 → 원 단위)"
+    echo "   ✅ 해약환급금 표 정확한 인식 및 분석"
     echo "   ✅ 개별 상품 분석 및 2개 상품 비교 분석"
     echo "   ✅ AI 챗봇 상담 기능"
     echo ""

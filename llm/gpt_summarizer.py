@@ -1224,21 +1224,36 @@ GPT 비교 분석에 실패하여 기본 개별 분석을 제공합니다.
     def _extract_table_data_from_pages(self, pages: List[Dict[str, Any]]) -> str:
         """페이지에서 표 데이터 추출 (개선된 해약환급금 표 파싱)"""
         try:
-            from parsing.table_parser import TableParser
+            import sys
+            import os
+            sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            
+            try:
+                from parsing.table_parser import TableParser
+                parser = TableParser()
+            except ImportError as e:
+                logger.error(f"TableParser import 실패: {e}")
+                return "표 데이터 추출 실패 (모듈 import 오류)"
             
             table_data = []
-            parser = TableParser()
             
             for page in pages:
                 page_text = page.get('text', '')
                 if page_text:
                     # 해약환급금 표 파싱
-                    surrender_table = parser.parse_surrender_value_table(page_text)
-                    if surrender_table:
-                        table_data.extend(surrender_table)
+                    try:
+                        surrender_table = parser.parse_surrender_value_table(page_text)
+                        if surrender_table:
+                            table_data.extend(surrender_table)
+                    except Exception as e:
+                        logger.error(f"표 파싱 실패: {e}")
+                        continue
             
             if not table_data:
+                logger.warning("표 데이터가 없습니다")
                 return "표 데이터 없음"
+            
+            logger.info(f"표 데이터 {len(table_data)}개 추출됨")
             
             # 표 데이터를 구조화된 형태로 변환
             formatted_data = []
@@ -1255,7 +1270,9 @@ GPT 비교 분석에 실패하여 기본 개별 분석을 제공합니다.
                             "surrender_rate": columns[5] if len(columns) > 5 else "",
                             "amounts": amounts
                         })
+                        logger.info(f"해약환급금 데이터 추가: {columns[0]} - {columns[4]}원 ({columns[5]})")
             
+            logger.info(f"구조화된 표 데이터 {len(formatted_data)}개 생성됨")
             return str(formatted_data)
             
         except Exception as e:
