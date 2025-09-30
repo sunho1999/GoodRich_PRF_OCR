@@ -87,13 +87,19 @@ class PDFTextExtractor:
             blocks = page.get_text("dict")["blocks"]
             structured_text = self._extract_structured_text(blocks)
             
+            # 표 구조 병행 추출
+            table_data = self._extract_table_structure(page)
+            
             page_data = {
                 "page_number": page_num + 1,
                 "text": text,
                 "structured_text": structured_text,
                 "text_length": len(text),
                 "extraction_method": "pymupdf",
-                "has_text": bool(text.strip())
+                "has_text": bool(text.strip()),
+                "table_data": table_data,  # 표 데이터 추가
+                "text_objects_count": len(structured_text),  # 텍스트 객체 수
+                "cid_to_unicode_failure_rate": 0  # 매핑 실패율 (PyMuPDF는 0)
             }
             
             pages.append(page_data)
@@ -201,18 +207,13 @@ class PDFTextExtractor:
                 return pages
             
             enhanced_pages = []
-            ocr_threshold = 50  # Minimum text length to consider OCR
             
             for page in pages:
                 page_text = page.get('text', '').strip()
                 page_num = page.get('page_number', 1)
                 
-                # Decision logic for when to apply OCR
-                should_use_ocr = (
-                    len(page_text) < ocr_threshold or  # Very little text extracted
-                    self._is_likely_scanned_page(page_text) or  # Likely scanned document
-                    self._has_poor_text_quality(page_text)  # Poor text quality
-                )
+                # 개선된 OCR 판단 로직: 텍스트 객체 품질 기반
+                should_use_ocr = self._should_apply_ocr(page, page_text)
                 
                 if should_use_ocr:
                     logger.info(f"Applying OCR to page {page_num} (text length: {len(page_text)})")
@@ -290,6 +291,125 @@ class PDFTextExtractor:
             return has_encoding_issues or single_char_ratio > 0.4
         
         return has_encoding_issues
+    
+    def _should_apply_ocr(self, page: Dict[str, Any], page_text: str) -> bool:
+        """
+        개선된 OCR 적용 판단 로직
+        
+        Args:
+            page: 페이지 데이터
+            page_text: 추출된 텍스트
+            
+        Returns:
+            OCR 적용 여부
+        """
+        # 1. 텍스트 객체 품질 기반 판단
+        text_objects_count = page.get('text_objects_count', 0)
+        cid_failure_rate = page.get('cid_to_unicode_failure_rate', 0)
+        
+        # 텍스트 객체가 있고 매핑 실패가 없으면 OCR 금지 (표 구조 보존)
+        if text_objects_count > 0 and cid_failure_rate == 0:
+            logger.info(f"Page {page.get('page_number', 1)}: 텍스트 객체 품질 양호, OCR 금지")
+            return False
+        
+        # 2. 표 구조 감지
+        has_table_structure = self._detect_table_structure(page_text)
+        if has_table_structure:
+            logger.info(f"Page {page.get('page_number', 1)}: 표 구조 감지, OCR 적용")
+            return True
+        
+        # 3. 기존 품질 판단 로직
+        return (
+            len(page_text) < 50 or  # 텍스트 부족
+            self._is_likely_scanned_page(page_text) or  # 스캔 문서
+            self._has_poor_text_quality(page_text)  # 품질 저하
+        )
+    
+    def _detect_table_structure(self, text: str) -> bool:
+        """표 구조 감지"""
+        if not text:
+            return False
+        
+        # 표 관련 키워드 감지
+        table_keywords = [
+            '해약환급금', '환급금', '경과기간', '납입보험료', '보험료',
+            '특약', '담보', '면책', '납입면제', '갱신', '감액'
+        ]
+        
+        # 키워드가 있고 숫자/표 구조가 있으면 표로 판단
+        has_keywords = any(keyword in text for keyword in table_keywords)
+        has_numbers = any(char.isdigit() for char in text)
+        has_table_chars = '|' in text or '\t' in text or '  ' in text
+        
+        return has_keywords and (has_numbers or has_table_chars)
+    
+    def _extract_table_structure(self, page) -> List[Dict[str, Any]]:
+        """
+        표 구조를 추출하여 JSON 형태로 저장
+        
+        Returns:
+            표 데이터 리스트: [{row, col, text_raw, text_norm, bbox, page}]
+        """
+        try:
+            # 페이지의 모든 텍스트 블록 추출
+            blocks = page.get_text("dict")["blocks"]
+            table_data = []
+            
+            for block in blocks:
+                if "lines" in block:
+                    for line in block["lines"]:
+                        for span in line["spans"]:
+                            if span["text"].strip():
+                                # 금액 데이터 이중 필드 처리
+                                text_raw = span["text"]
+                                text_norm = self._normalize_text_for_comparison(text_raw)
+                                
+                                table_data.append({
+                                    "row": len(table_data),  # 임시 행 번호
+                                    "col": 0,  # 임시 열 번호
+                                    "text_raw": text_raw,
+                                    "text_norm": text_norm,
+                                    "amount_raw": self._extract_amount_raw(text_raw),
+                                    "amount_norm_krw": self._extract_amount_norm(text_raw),
+                                    "bbox": span["bbox"],
+                                    "page": page.number + 1,
+                                    "font": span["font"],
+                                    "size": span["size"]
+                                })
+            
+            return table_data
+            
+        except Exception as e:
+            logger.error(f"표 구조 추출 실패: {e}")
+            return []
+    
+    def _normalize_text_for_comparison(self, text: str) -> str:
+        """비교용 텍스트 정규화"""
+        import re
+        
+        # 공백 정규화
+        normalized = re.sub(r'\s+', ' ', text.strip())
+        
+        # 금액 단위 통일
+        normalized = re.sub(r'([0-9,]+)\s*천원', r'\1,000원', normalized)
+        normalized = re.sub(r'([0-9,]+)\s*만원', r'\1,0000원', normalized)
+        normalized = re.sub(r'([0-9.]+)\s*억원', lambda m: f"{int(float(m.group(1)) * 100000000):,}원", normalized)
+        
+        return normalized
+    
+    def _extract_amount_raw(self, text: str) -> str:
+        """원문 금액 추출"""
+        import re
+        amount_match = re.search(r'([0-9,]+원)', text)
+        return amount_match.group(1) if amount_match else ""
+    
+    def _extract_amount_norm(self, text: str) -> int:
+        """정규화된 금액 추출 (숫자만)"""
+        import re
+        amount_match = re.search(r'([0-9,]+)원', text)
+        if amount_match:
+            return int(amount_match.group(1).replace(',', ''))
+        return 0
     
     def get_text_coverage(self, pages: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Calculate text coverage statistics"""
