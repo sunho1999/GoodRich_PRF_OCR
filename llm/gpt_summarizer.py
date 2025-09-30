@@ -563,6 +563,7 @@ class GPTSummarizer:
             return ""
         
         total_pages = len(pages)
+        logger.info(f"GPT 텍스트 조합 시작: 총 {total_pages} 페이지")
         
         for i, page in enumerate(pages):
             # 각 페이지가 딕셔너리인지 확인
@@ -574,8 +575,13 @@ class GPTSummarizer:
             text = page.get('text', '')
             ocr_text = page.get('ocr_text', '')
             
-            # 페이지 정보를 더 자세히 표시
-            all_text += f"\n\n=== 페이지 {page_num}/{total_pages} ===\n"
+            # 해약환급금 관련 페이지 특별 표시
+            is_surrender_page = any(keyword in text for keyword in ['해약환급금', '환급금', '경과기간'])
+            page_marker = f"\n\n=== 페이지 {page_num}/{total_pages} {'[해약환급금 관련]' if is_surrender_page else ''} ===\n"
+            all_text += page_marker
+            
+            if is_surrender_page:
+                logger.info(f"해약환급금 관련 페이지 {page_num} GPT 텍스트에 포함")
             
             # 기본 텍스트 추가 (더 많은 내용 포함)
             if text.strip():

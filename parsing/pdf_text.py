@@ -77,6 +77,10 @@ class PDFTextExtractor:
         pages = []
         doc = fitz.open(file_path)
         
+        # 전체 페이지 수 로깅
+        total_pages = len(doc)
+        logger.info(f"PDF 총 페이지 수: {total_pages}")
+        
         for page_num in range(len(doc)):
             page = doc[page_num]
             
@@ -89,6 +93,10 @@ class PDFTextExtractor:
             
             # 표 구조 병행 추출
             table_data = self._extract_table_structure(page)
+            
+            # 해약환급금 관련 페이지 특별 로깅
+            if any(keyword in text for keyword in ['해약환급금', '환급금', '경과기간']):
+                logger.info(f"해약환급금 관련 페이지 {page_num + 1} 감지: {text[:100]}...")
             
             page_data = {
                 "page_number": page_num + 1,
@@ -103,6 +111,7 @@ class PDFTextExtractor:
             }
             
             pages.append(page_data)
+            logger.info(f"페이지 {page_num + 1}/{total_pages} 추출 완료 (텍스트 길이: {len(text)})")
         
         doc.close()
         return pages
@@ -330,7 +339,7 @@ class PDFTextExtractor:
         if not text:
             return False
         
-        # 표 관련 키워드 감지
+        # 표 관련 키워드 감지 (해약환급금 우선)
         table_keywords = [
             '해약환급금', '환급금', '경과기간', '납입보험료', '보험료',
             '특약', '담보', '면책', '납입면제', '갱신', '감액'
@@ -340,6 +349,11 @@ class PDFTextExtractor:
         has_keywords = any(keyword in text for keyword in table_keywords)
         has_numbers = any(char.isdigit() for char in text)
         has_table_chars = '|' in text or '\t' in text or '  ' in text
+        
+        # 해약환급금 키워드가 있으면 강제로 표로 판단
+        if '해약환급금' in text or '환급금' in text:
+            logger.info(f"해약환급금 키워드 감지: {text[:100]}...")
+            return True
         
         return has_keywords and (has_numbers or has_table_chars)
     
@@ -457,6 +471,23 @@ class PDFTextExtractor:
             # 텍스트 추출 (OCR 포함)
             success, pages = self.extract_text_from_pdf(temp_file_path, use_ocr=True)
             
+            # 페이지 수 확인 및 로깅
+            total_pages = len(pages)
+            logger.info(f"URL PDF 총 페이지 수: {total_pages}")
+            
+            # 해약환급금 관련 페이지 확인
+            surrender_pages = []
+            for page in pages:
+                page_text = page.get('text', '')
+                if any(keyword in page_text for keyword in ['해약환급금', '환급금', '경과기간']):
+                    surrender_pages.append(page.get('page_number', 0))
+                    logger.info(f"해약환급금 관련 페이지 발견: {page.get('page_number', 0)}")
+            
+            if surrender_pages:
+                logger.info(f"해약환급금 관련 페이지: {surrender_pages}")
+            else:
+                logger.warning("해약환급금 관련 페이지를 찾을 수 없습니다")
+            
             # 임시 파일 삭제
             try:
                 os.unlink(temp_file_path)
@@ -464,7 +495,7 @@ class PDFTextExtractor:
                 logger.warning(f"임시 파일 삭제 실패: {e}")
             
             if success:
-                logger.info(f"URL PDF 텍스트 추출 성공: {len(pages)} 페이지")
+                logger.info(f"URL PDF 텍스트 추출 성공: {total_pages} 페이지")
             else:
                 logger.error(f"URL PDF 텍스트 추출 실패")
             

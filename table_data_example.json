@@ -1,0 +1,177 @@
+{
+  "document_info": {
+    "file_name": "한화 시그니처 여성 건강보험3.0 무배당2504",
+    "customer_name": "오수정",
+    "design_number": "LA250919515831",
+    "premium": "85,804원",
+    "notice_type": "1형(일반고지형)"
+  },
+  "table_data": [
+    {
+      "row": 1,
+      "col": 1,
+      "text_raw": "1회차보험료(할인후)",
+      "text_norm": "1회차보험료(할인후)",
+      "amount_raw": "85,804원",
+      "amount_norm_krw": 85804,
+      "bbox": [100, 200, 300, 250],
+      "page": 1,
+      "font": "Arial",
+      "size": 12
+    },
+    {
+      "row": 1,
+      "col": 2,
+      "text_raw": "85,804원",
+      "text_norm": "85,804원",
+      "amount_raw": "85,804원",
+      "amount_norm_krw": 85804,
+      "bbox": [350, 200, 450, 250],
+      "page": 1,
+      "font": "Arial",
+      "size": 12
+    },
+    {
+      "row": 2,
+      "col": 1,
+      "text_raw": "2회차이후보험료",
+      "text_norm": "2회차이후보험료",
+      "amount_raw": "85,804원",
+      "amount_norm_krw": 85804,
+      "bbox": [100, 280, 300, 330],
+      "page": 1,
+      "font": "Arial",
+      "size": 12
+    },
+    {
+      "row": 2,
+      "col": 2,
+      "text_raw": "85,804원",
+      "text_norm": "85,804원",
+      "amount_raw": "85,804원",
+      "amount_norm_krw": 85804,
+      "bbox": [350, 280, 450, 330],
+      "page": 1,
+      "font": "Arial",
+      "size": 12
+    },
+    {
+      "row": 3,
+      "col": 1,
+      "text_raw": "보장보험료",
+      "text_norm": "보장보험료",
+      "amount_raw": "85,804원",
+      "amount_norm_krw": 85804,
+      "bbox": [100, 360, 300, 410],
+      "page": 1,
+      "font": "Arial",
+      "size": 12
+    },
+    {
+      "row": 3,
+      "col": 2,
+      "text_raw": "85,804원",
+      "text_norm": "85,804원",
+      "amount_raw": "85,804원",
+      "amount_norm_krw": 85804,
+      "bbox": [350, 360, 450, 410],
+      "page": 1,
+      "font": "Arial",
+      "size": 12
+    },
+    {
+      "row": 4,
+      "col": 1,
+      "text_raw": "적립보험료",
+      "text_norm": "적립보험료",
+      "amount_raw": "0원",
+      "amount_norm_krw": 0,
+      "bbox": [100, 440, 300, 490],
+      "page": 1,
+      "font": "Arial",
+      "size": 12
+    },
+    {
+      "row": 4,
+      "col": 2,
+      "text_raw": "0원",
+      "text_norm": "0원",
+      "amount_raw": "0원",
+      "amount_norm_krw": 0,
+      "bbox": [350, 440, 450, 490],
+      "page": 1,
+      "font": "Arial",
+      "size": 12
+    },
+    {
+      "row": 5,
+      "col": 1,
+      "text_raw": "기본계약(보통약관)",
+      "text_norm": "기본계약(보통약관)",
+      "amount_raw": "1,400원",
+      "amount_norm_krw": 1400,
+      "bbox": [100, 520, 300, 570],
+      "page": 1,
+      "font": "Arial",
+      "size": 12
+    },
+    {
+      "row": 5,
+      "col": 2,
+      "text_raw": "1,400원",
+      "text_norm": "1,400원",
+      "amount_raw": "1,400원",
+      "amount_norm_krw": 1400,
+      "bbox": [350, 520, 450, 570],
+      "page": 1,
+      "font": "Arial",
+      "size": 12
+    },
+    {
+      "row": 6,
+      "col": 1,
+      "text_raw": "특약(특별약관)",
+      "text_norm": "특약(특별약관)",
+      "amount_raw": "84,404원",
+      "amount_norm_krw": 84404,
+      "bbox": [100, 600, 300, 650],
+      "page": 1,
+      "font": "Arial",
+      "size": 12
+    },
+    {
+      "row": 6,
+      "col": 2,
+      "text_raw": "84,404원",
+      "text_norm": "84,404원",
+      "amount_raw": "84,404원",
+      "amount_norm_krw": 84404,
+      "bbox": [350, 600, 450, 650],
+      "page": 1,
+      "font": "Arial",
+      "size": 12
+    }
+  ],
+  "surrender_value_info": {
+    "protection_limit": "1억원까지",
+    "protection_law": "예금자보호법",
+    "payment_condition": "해약환급금이 있을 때 보험계약자에게 지급",
+    "revival_period": "해지된 날부터 3년이내"
+  },
+  "contact_info": {
+    "customer_service": "1566-8000",
+    "website": "www.hwgeneralins.com",
+    "mobile_app": "모바일로 간편하고 쉽게 보험을 관리",
+    "agent": "강윤경 (010-2435-3398)"
+  },
+  "extraction_metadata": {
+    "total_pages": 1,
+    "tables_detected": 1,
+    "tables_coverage": "100%",
+    "text_objects_count": 50,
+    "cid_to_unicode_failure_rate": 0,
+    "extraction_method": "pymupdf",
+    "ocr_applied": false,
+    "table_structure_preserved": true
+  }
+}
