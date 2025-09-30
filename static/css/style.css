@@ -286,6 +286,80 @@ body {
     flex-direction: column;
 }
 
+/* Chat Modal Resize Styles */
+#chatbotModalDialog {
+    transition: all 0.3s ease;
+    max-width: 90vw;
+    max-height: 90vh;
+}
+
+#chatbotModalDialog.resizable {
+    position: fixed !important;
+    top: 5vh !important;
+    left: 5vw !important;
+    width: 80vw !important;
+    height: 80vh !important;
+    margin: 0 !important;
+    transform: none !important;
+}
+
+#chatbotModalDialog.minimized {
+    position: fixed !important;
+    top: auto !important;
+    left: auto !important;
+    bottom: 20px !important;
+    right: 20px !important;
+    width: 300px !important;
+    height: 60px !important;
+    margin: 0 !important;
+    transform: none !important;
+}
+
+#chatbotModalDialog.minimized .modal-body {
+    display: none;
+}
+
+#chatbotModalDialog.minimized .modal-footer {
+    display: none;
+}
+
+.chat-controls {
+    display: flex;
+    align-items: center;
+}
+
+.chat-controls .btn {
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    transition: all 0.2s ease;
+}
+
+.chat-controls .btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Resize Handle */
+.resize-handle {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(-45deg, transparent 30%, #ccc 30%, #ccc 70%, transparent 70%);
+    cursor: se-resize;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+#chatbotModalDialog.resizable .resize-handle {
+    opacity: 1;
+}
+
+#chatbotModalDialog.resizable:hover .resize-handle {
+    opacity: 1;
+}
+
 .chat-messages {
     flex: 1;
     padding: 1rem;
@@ -538,9 +612,24 @@ body {
 }
 
 .product-title {
-    color: var(--primary-color);
+    color: white;
     font-weight: 700;
     margin-bottom: 0.5rem;
+}
+
+/* 상품명 텍스트 색상 개선 */
+.product-name,
+.product-name *,
+.badge.bg-primary,
+.badge.bg-secondary {
+    color: white !important;
+}
+
+/* 결과 카드 내 상품명 강조 */
+.results-card .product-title,
+.results-card .product-name {
+    color: white !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .analysis-badge .badge {

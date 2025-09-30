@@ -48,6 +48,9 @@ class PDFAnalyzer {
             });
         }
 
+        // 채팅창 크기 조절 기능
+        this.initializeChatResize();
+
         // 비교 분석 폼
         const compareForm = document.getElementById('compareForm');
         if (compareForm) {
