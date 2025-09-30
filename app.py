@@ -252,7 +252,7 @@ class WebAnalyzer:
             
             response = self.gpt_summarizer._safe_api_call(
                 messages=messages, 
-                max_tokens=1000, 
+                max_tokens=2000,  # 토큰 제한 증가
                 retries=2, 
                 delay=1
             )
@@ -536,11 +536,15 @@ def handle_chat_message(data):
             })
             return
         
-        # 컨텍스트 구성
+        # 컨텍스트 구성 (전체 내용 포함)
         context = "분석된 상품 정보:\n\n"
         for i, product in enumerate(analyzed_products[-3:], 1):  # 최근 3개만 사용
-            content_preview = product['content'][:1500]
-            context += f"상품 {i}: {product['name']}\n{content_preview}\n\n"
+            # 전체 내용 포함 (1500자 제한 해제)
+            context += f"상품 {i}: {product['name']}\n{product['content']}\n\n"
+            
+        # 디버깅을 위한 로깅
+        logger.info(f"챗봇 컨텍스트 길이: {len(context)} 자")
+        logger.info(f"분석된 상품 수: {len(analyzed_products)}")
         
         # 로딩 상태 전송
         emit('chat_response', {'loading': True, 'message': 'AI가 응답을 생성하고 있습니다...'})
@@ -551,7 +555,13 @@ def handle_chat_message(data):
         # 별도 스레드에서 AI 응답 생성
         def generate_response():
             try:
+                logger.info(f"챗봇 질문: {question}")
+                logger.info(f"컨텍스트 미리보기: {context[:500]}...")
+                
                 response = analyzer.generate_chatbot_response(question, context)
+                
+                logger.info(f"챗봇 응답: {response[:200]}...")
+                
                 socketio.emit('chat_response', {
                     'response': response,
                     'type': 'success',
