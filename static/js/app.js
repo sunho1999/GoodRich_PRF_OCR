@@ -55,7 +55,21 @@ class PDFAnalyzer {
         const compareForm = document.getElementById('compareForm');
         if (compareForm) {
             compareForm.addEventListener('submit', (e) => {
+                console.log('📝 비교 분석 폼 제출 이벤트 발생');
                 e.preventDefault();
+                e.stopPropagation();
+                console.log('✅ 폼 제출 방지 완료');
+                this.handleCompareAnalysis();
+            });
+        }
+
+        // 비교 분석 버튼 직접 클릭 이벤트 (추가 안전장치)
+        const compareButton = compareForm?.querySelector('button[type="submit"]');
+        if (compareButton) {
+            compareButton.addEventListener('click', (e) => {
+                console.log('🔘 비교 분석 버튼 클릭');
+                e.preventDefault();
+                e.stopPropagation();
                 this.handleCompareAnalysis();
             });
         }
@@ -173,10 +187,13 @@ class PDFAnalyzer {
 
     async handleCompareAnalysis() {
         try {
+            console.log('🔍 비교 분석 시작 - 디버깅');
             this.showLoading('2개 상품 비교 분석을 시작합니다...');
 
             const product1Name = document.getElementById('product1_name').value.trim();
             const product2Name = document.getElementById('product2_name').value.trim();
+            
+            console.log('상품명 확인:', { product1Name, product2Name });
 
             // 첫 번째 상품 소스
             const product1UrlTab = document.getElementById('product1-url-tab');
@@ -246,8 +263,9 @@ class PDFAnalyzer {
             this.showNotification('비교 분석이 완료되었습니다!', 'success');
 
         } catch (error) {
-            console.error('비교 분석 오류:', error);
-            this.showNotification(error.message, 'error');
+            console.error('❌ 비교 분석 오류:', error);
+            console.error('오류 스택:', error.stack);
+            this.showNotification(`비교 분석 중 오류가 발생했습니다: ${error.message}`, 'error');
         } finally {
             this.hideLoading();
         }
