@@ -1222,33 +1222,39 @@ GPT 비교 분석에 실패하여 기본 개별 분석을 제공합니다.
         return '\n'.join(surrender_lines)
     
     def _extract_table_data_from_pages(self, pages: List[Dict[str, Any]]) -> str:
-        """페이지에서 표 데이터 추출"""
+        """페이지에서 표 데이터 추출 (개선된 해약환급금 표 파싱)"""
         try:
+            from parsing.table_parser import TableParser
+            
             table_data = []
+            parser = TableParser()
             
             for page in pages:
-                page_table_data = page.get('table_data', [])
-                if page_table_data:
-                    # 해약환급금 관련 표 데이터만 필터링
-                    surrender_tables = [
-                        item for item in page_table_data 
-                        if any(keyword in item.get('text_raw', '') for keyword in 
-                               ['해약환급금', '환급금', '경과기간', '납입보험료'])
-                    ]
-                    table_data.extend(surrender_tables)
+                page_text = page.get('text', '')
+                if page_text:
+                    # 해약환급금 표 파싱
+                    surrender_table = parser.parse_surrender_value_table(page_text)
+                    if surrender_table:
+                        table_data.extend(surrender_table)
             
             if not table_data:
                 return "표 데이터 없음"
             
             # 표 데이터를 구조화된 형태로 변환
             formatted_data = []
-            for item in table_data[:20]:  # 최대 20개 항목만
-                formatted_data.append({
-                    "text_raw": item.get('text_raw', ''),
-                    "amount_raw": item.get('amount_raw', ''),
-                    "amount_norm_krw": item.get('amount_norm_krw', 0),
-                    "page": item.get('page', 0)
-                })
+            for item in table_data:
+                if item.get('type') == 'data':
+                    columns = item.get('columns', [])
+                    amounts = item.get('amounts', [])
+                    
+                    if len(columns) >= 6:  # 경과기간, 납입보험료, 적립부분환급금, 보장부분환급금, 환급금(합계), 환급률
+                        formatted_data.append({
+                            "period": columns[0] if len(columns) > 0 else "",
+                            "premium": columns[1] if len(columns) > 1 else "",
+                            "surrender_amount": columns[4] if len(columns) > 4 else "",
+                            "surrender_rate": columns[5] if len(columns) > 5 else "",
+                            "amounts": amounts
+                        })
             
             return str(formatted_data)
             

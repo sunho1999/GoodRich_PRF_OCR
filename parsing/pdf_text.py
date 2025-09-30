@@ -372,30 +372,79 @@ class PDFTextExtractor:
             for block in blocks:
                 if "lines" in block:
                     for line in block["lines"]:
+                        line_text = ""
+                        line_spans = []
+                        
+                        # 라인 내 모든 span 수집
                         for span in line["spans"]:
                             if span["text"].strip():
-                                # 금액 데이터 이중 필드 처리
-                                text_raw = span["text"]
-                                text_norm = self._normalize_text_for_comparison(text_raw)
-                                
-                                table_data.append({
-                                    "row": len(table_data),  # 임시 행 번호
-                                    "col": 0,  # 임시 열 번호
-                                    "text_raw": text_raw,
-                                    "text_norm": text_norm,
-                                    "amount_raw": self._extract_amount_raw(text_raw),
-                                    "amount_norm_krw": self._extract_amount_norm(text_raw),
-                                    "bbox": span["bbox"],
-                                    "page": page.number + 1,
-                                    "font": span["font"],
-                                    "size": span["size"]
-                                })
+                                line_text += span["text"] + " "
+                                line_spans.append(span)
+                        
+                        # 표 라인인지 판단
+                        if self._is_table_line(line_text):
+                            # 표 라인인 경우 각 span을 개별 셀로 처리
+                            for i, span in enumerate(line_spans):
+                                if span["text"].strip():
+                                    text_raw = span["text"]
+                                    text_norm = self._normalize_text_for_comparison(text_raw)
+                                    
+                                    table_data.append({
+                                        "row": len(table_data),
+                                        "col": i,
+                                        "text_raw": text_raw,
+                                        "text_norm": text_norm,
+                                        "amount_raw": self._extract_amount_raw(text_raw),
+                                        "amount_norm_krw": self._extract_amount_norm(text_raw),
+                                        "bbox": span["bbox"],
+                                        "page": page.number + 1,
+                                        "font": span["font"],
+                                        "size": span["size"]
+                                    })
+                        else:
+                            # 일반 텍스트인 경우 기존 로직
+                            for span in line_spans:
+                                if span["text"].strip():
+                                    text_raw = span["text"]
+                                    text_norm = self._normalize_text_for_comparison(text_raw)
+                                    
+                                    table_data.append({
+                                        "row": len(table_data),
+                                        "col": 0,
+                                        "text_raw": text_raw,
+                                        "text_norm": text_norm,
+                                        "amount_raw": self._extract_amount_raw(text_raw),
+                                        "amount_norm_krw": self._extract_amount_norm(text_raw),
+                                        "bbox": span["bbox"],
+                                        "page": page.number + 1,
+                                        "font": span["font"],
+                                        "size": span["size"]
+                                    })
             
             return table_data
             
         except Exception as e:
             logger.error(f"표 구조 추출 실패: {e}")
             return []
+    
+    def _is_table_line(self, line_text: str) -> bool:
+        """표 라인인지 판단"""
+        # 해약환급금 관련 키워드가 있는 라인
+        surrender_keywords = ['해약환급금', '환급금', '경과기간', '납입보험료', '적립부분', '보장부분']
+        if any(keyword in line_text for keyword in surrender_keywords):
+            return True
+        
+        # 숫자와 금액이 많이 포함된 라인 (표 구조)
+        import re
+        amount_patterns = [
+            r'[0-9,]+원',  # 85,804원
+            r'[0-9]+년',   # 1년, 2년
+            r'[0-9]+세',   # 37세, 38세
+            r'[0-9,]+%',   # 29.8%
+        ]
+        
+        pattern_count = sum(1 for pattern in amount_patterns if re.search(pattern, line_text))
+        return pattern_count >= 2  # 2개 이상의 패턴이 있으면 표 라인으로 판단
     
     def _normalize_text_for_comparison(self, text: str) -> str:
         """비교용 텍스트 정규화"""
@@ -414,15 +463,42 @@ class PDFTextExtractor:
     def _extract_amount_raw(self, text: str) -> str:
         """원문 금액 추출"""
         import re
-        amount_match = re.search(r'([0-9,]+원)', text)
-        return amount_match.group(1) if amount_match else ""
+        # 다양한 금액 패턴 매칭
+        patterns = [
+            r'([0-9,]+원)',  # 85,804원
+            r'([0-9]+원)',   # 85804원
+            r'([0-9,]+천원)', # 1,000천원
+            r'([0-9,]+만원)', # 1,000만원
+            r'([0-9.]+억원)'  # 1.5억원
+        ]
+        
+        for pattern in patterns:
+            amount_match = re.search(pattern, text)
+            if amount_match:
+                return amount_match.group(1)
+        
+        return ""
     
     def _extract_amount_norm(self, text: str) -> int:
         """정규화된 금액 추출 (숫자만)"""
         import re
-        amount_match = re.search(r'([0-9,]+)원', text)
-        if amount_match:
-            return int(amount_match.group(1).replace(',', ''))
+        # 다양한 금액 패턴 매칭
+        patterns = [
+            (r'([0-9,]+)원', 1),      # 85,804원 -> 85804
+            (r'([0-9,]+)천원', 1000), # 1,000천원 -> 1000000
+            (r'([0-9,]+)만원', 10000), # 1,000만원 -> 10000000
+            (r'([0-9.]+)억원', 100000000) # 1.5억원 -> 150000000
+        ]
+        
+        for pattern, multiplier in patterns:
+            amount_match = re.search(pattern, text)
+            if amount_match:
+                try:
+                    amount = float(amount_match.group(1).replace(',', ''))
+                    return int(amount * multiplier)
+                except:
+                    continue
+        
         return 0
     
     def get_text_coverage(self, pages: List[Dict[str, Any]]) -> Dict[str, Any]:
