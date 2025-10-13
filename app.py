@@ -11,11 +11,13 @@ import time
 from datetime import datetime
 import logging
 from werkzeug.utils import secure_filename
+from io import BytesIO
 
 # 기존 모듈들 import
 from parsing.pdf_text import PDFTextExtractor
 from llm.gpt_summarizer import GPTSummarizer
 from core.config import settings
+from core.pdf_generator import PDFReportGenerator
 
 # Flask 앱 초기화
 app = Flask(__name__)
@@ -44,6 +46,7 @@ class WebAnalyzer:
     def __init__(self):
         self.config = settings
         self.pdf_extractor = PDFTextExtractor()
+        self.pdf_generator = PDFReportGenerator()
         
         # 사용자별 분석 데이터 저장 (메모리 기반)
         self.user_data = {}
@@ -502,6 +505,97 @@ def analyze_compare():
     except Exception as e:
         logger.error(f"비교 분석 오류: {e}")
         return jsonify({'success': False, 'error': f'비교 분석 중 오류가 발생했습니다: {str(e)}'})
+
+@app.route('/api/download/pdf', methods=['POST'])
+def download_pdf():
+    """분석 결과를 PDF로 다운로드 (개선된 통합 테이블 구조)"""
+    try:
+        data = request.get_json()
+        report_type = data.get('type')  # 'individual' or 'comparison'
+        
+        if report_type == 'individual':
+            # 개별 상품 분석 PDF
+            product_name = data.get('product_name', '보험상품')
+            analysis_content = data.get('analysis_content', '')
+            
+            if not analysis_content:
+                return jsonify({'success': False, 'error': '분석 내용이 없습니다.'})
+            
+            # PDF 생성
+            pdf_bytes = analyzer.pdf_generator.generate_analysis_pdf(
+                product_name=product_name,
+                analysis_content=analysis_content
+            )
+            
+            # 파일명 생성
+            safe_name = "".join(c for c in product_name if c.isalnum() or c in (' ', '-', '_')).strip()
+            filename = f"{safe_name}_분석보고서_{datetime.now().strftime('%Y%m%d')}.pdf"
+            
+        elif report_type == 'comparison':
+            # 비교 분석 PDF (개선된 통합 테이블 구조)
+            product1_name = data.get('product1_name', '상품 A')
+            product2_name = data.get('product2_name', '상품 B')
+            comparison_content = data.get('comparison_content', '')
+            
+            if not comparison_content:
+                return jsonify({'success': False, 'error': '비교 분석 내용이 없습니다.'})
+            
+            # GPT 응답을 개선된 비교 구조로 변환
+            improved_content = _improve_comparison_content(comparison_content)
+            
+            # PDF 생성
+            pdf_bytes = analyzer.pdf_generator.generate_comparison_pdf(
+                product1_name=product1_name,
+                product2_name=product2_name,
+                comparison_content=improved_content
+            )
+            
+            # 파일명 생성
+            filename = f"비교분석_{datetime.now().strftime('%Y%m%d')}.pdf"
+            
+        else:
+            return jsonify({'success': False, 'error': '잘못된 요청 타입입니다.'})
+        
+        # PDF 다운로드 응답
+        return send_file(
+            BytesIO(pdf_bytes),
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=filename
+        )
+        
+    except Exception as e:
+        logger.error(f"PDF 다운로드 오류: {e}")
+        return jsonify({'success': False, 'error': f'PDF 생성 중 오류가 발생했습니다: {str(e)}'})
+
+def _improve_comparison_content(content: str) -> str:
+    """GPT 응답을 개선된 비교 구조로 변환"""
+    lines = content.split('\n')
+    improved_lines = []
+    
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+            
+        # 기존 비교 구조를 새로운 구조로 변환
+        if '상품 A' in line and '상품 B' in line:
+            # "상품 A: 내용, 상품 B: 내용" 형식을 분리
+            if '상품 A:' in line and '상품 B:' in line:
+                parts = line.split('상품 B:')
+                if len(parts) == 2:
+                    product_a_part = parts[0] + '상품 A:'
+                    product_b_part = '상품 B:' + parts[1]
+                    improved_lines.append(product_a_part)
+                    improved_lines.append(product_b_part)
+                else:
+                    improved_lines.append(line)
+            else:
+                improved_lines.append(line)
+        else:
+            improved_lines.append(line)
+    
+    return '\n'.join(improved_lines)
 
 # WebSocket 이벤트 (챗봇용)
 @socketio.on('connect')

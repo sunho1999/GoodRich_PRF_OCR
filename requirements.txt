@@ -11,6 +11,7 @@ openai>=1.3.0,<2.0.0
 # PDF 처리
 PyMuPDF>=1.20.0,<2.0.0
 pdfminer.six>=20220319
+reportlab>=4.0.0
 
 # 이미지 처리 및 OCR
 Pillow>=10.0.0,<11.0.0

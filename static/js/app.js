@@ -2027,32 +2027,84 @@ function openChatbot() {
     modal.show();
 }
 
-function downloadResults() {
+async function downloadResults() {
     if (!window.pdfAnalyzer || !window.pdfAnalyzer.currentResults) {
         alert('다운로드할 결과가 없습니다.');
         return;
     }
 
     const results = window.pdfAnalyzer.currentResults;
-    let content = '';
-
-    if (results.analysis) {
-        content = results.analysis;
-    } else if (results.comparison_analysis) {
-        content = results.comparison_analysis;
-    } else {
-        content = '분석 결과가 없습니다.';
+    
+    try {
+        // 로딩 표시
+        window.pdfAnalyzer.showLoading('PDF 보고서를 생성하는 중입니다...');
+        
+        let requestData = {};
+        
+        // 개별 분석 또는 비교 분석 구분
+        if (results.analysis) {
+            // 개별 상품 분석
+            requestData = {
+                type: 'individual',
+                product_name: results.product_name || '보험상품',
+                analysis_content: results.analysis
+            };
+        } else if (results.comparison_analysis) {
+            // 비교 분석
+            requestData = {
+                type: 'comparison',
+                product1_name: results.products?.[0]?.name || '상품 A',
+                product2_name: results.products?.[1]?.name || '상품 B',
+                comparison_content: results.comparison_analysis
+            };
+        } else {
+            throw new Error('다운로드할 분석 결과가 없습니다.');
+        }
+        
+        // PDF 다운로드 요청
+        const response = await fetch('/api/download/pdf', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'PDF 생성에 실패했습니다.');
+        }
+        
+        // PDF 파일 다운로드
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        
+        // 파일명 설정 (응답 헤더에서 가져오거나 기본값 사용)
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = `분석보고서_${new Date().toISOString().slice(0, 10)}.pdf`;
+        if (contentDisposition) {
+            const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+            if (filenameMatch && filenameMatch[1]) {
+                filename = filenameMatch[1].replace(/['"]/g, '');
+            }
+        }
+        
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        
+        window.pdfAnalyzer.showNotification('PDF 보고서가 다운로드되었습니다!', 'success');
+        
+    } catch (error) {
+        console.error('PDF 다운로드 오류:', error);
+        window.pdfAnalyzer.showNotification(error.message, 'error');
+    } finally {
+        window.pdfAnalyzer.hideLoading();
     }
-
-    const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `분석결과_${new Date().toISOString().slice(0, 10)}.md`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
 }
 
 // 애플리케이션 초기화
