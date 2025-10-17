@@ -8,6 +8,7 @@ import json
 import tempfile
 import threading
 import time
+import io
 from datetime import datetime
 import logging
 from werkzeug.utils import secure_filename
@@ -16,6 +17,18 @@ from werkzeug.utils import secure_filename
 from parsing.pdf_text import PDFTextExtractor
 from llm.gpt_summarizer import GPTSummarizer
 from core.config import settings
+
+# PDF 생성 라이브러리
+try:
+    from weasyprint import HTML, CSS
+    from markdown2 import markdown
+    PDF_GENERATION_AVAILABLE = True
+    logger = logging.getLogger(__name__)
+    logger.info("✅ PDF 생성 라이브러리 로드 성공")
+except ImportError as e:
+    PDF_GENERATION_AVAILABLE = False
+    logger = logging.getLogger(__name__)
+    logger.warning(f"⚠️ PDF 생성 라이브러리 로드 실패: {e}")
 
 # Flask 앱 초기화
 app = Flask(__name__)
@@ -234,8 +247,9 @@ class WebAnalyzer:
    - 특정 상품을 추천하거나 비판하지 말고 사실만 전달
    - 고객이 스스로 판단할 수 있도록 정보 제공
 
-6. **문서 기반 답변**: 반드시 분석된 문서의 정보만을 사용
-   - 문서에 없는 정보는 "문서에 해당 정보가 없습니다"라고 명시
+6. **문서 기반 답변**: 
+   - 보험상품 외, 질문은 알고있는 대로 답변
+   - 보험과 관련이 있지만, 문서에 없는 정보는 "문서에 해당 정보가 없습니다"라고 명시
    - 추측이나 일반적인 정보 제공 금지
 
 **분석된 상품 정보**:
@@ -608,6 +622,173 @@ def start_app():
     else:
         # 프로덕션 환경
         socketio.run(app, host='0.0.0.0', port=8080, debug=False, allow_unsafe_werkzeug=True)
+
+@app.route('/api/generate_pdf', methods=['POST'])
+def generate_pdf():
+    """분석 결과를 PDF로 생성하여 다운로드"""
+    try:
+        data = request.get_json()
+        markdown_content = data.get('content', '')
+        filename = data.get('filename', '보험상품_분석결과')
+        
+        if not markdown_content:
+            return jsonify({
+                'success': False,
+                'error': '변환할 내용이 없습니다.'
+            }), 400
+        
+        # PDF 생성 라이브러리 확인
+        if not PDF_GENERATION_AVAILABLE:
+            return jsonify({
+                'success': False,
+                'error': 'PDF 생성 기능이 사용 불가능합니다. weasyprint와 markdown2를 설치해주세요.'
+            }), 500
+        
+        # 마크다운을 HTML로 변환
+        html_content = markdown(markdown_content, extras=['tables', 'fenced-code-blocks'])
+        
+        # HTML 템플릿
+        html_template = f"""
+        <!DOCTYPE html>
+        <html lang="ko">
+        <head>
+            <meta charset="UTF-8">
+            <title>{filename}</title>
+            <style>
+                @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+                
+                body {{
+                    font-family: 'Noto Sans KR', sans-serif;
+                    line-height: 1.6;
+                    color: #333;
+                    max-width: 210mm;
+                    margin: 0 auto;
+                    padding: 20mm;
+                    font-size: 11pt;
+                }}
+                
+                h1 {{
+                    color: #2c3e50;
+                    border-bottom: 3px solid #3498db;
+                    padding-bottom: 10px;
+                    margin-top: 30px;
+                    font-size: 24pt;
+                    font-weight: 700;
+                }}
+                
+                h2 {{
+                    color: #34495e;
+                    border-bottom: 2px solid #95a5a6;
+                    padding-bottom: 8px;
+                    margin-top: 15px;
+                    margin-bottom: 10px;
+                    font-size: 18pt;
+                    font-weight: 600;
+                    page-break-after: avoid;
+                    page-break-before: auto;
+                }}
+                
+                h3 {{
+                    color: #7f8c8d;
+                    margin-top: 20px;
+                    font-size: 14pt;
+                    font-weight: 500;
+                }}
+                
+                table {{
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin: 15px 0;
+                    font-size: 10pt;
+                    page-break-inside: auto;
+                    page-break-before: avoid;
+                    page-break-after: avoid;
+                }}
+                
+                th, td {{
+                    border: 1px solid #ddd;
+                    padding: 10px;
+                    text-align: left;
+                }}
+                
+                th {{
+                    background-color: #3498db;
+                    color: white;
+                    font-weight: 600;
+                }}
+                
+                tr:nth-child(even) {{
+                    background-color: #f8f9fa;
+                }}
+                
+                hr {{
+                    border: none;
+                    border-top: 1px solid #ecf0f1;
+                    margin: 25px 0;
+                }}
+                
+                ul, ol {{
+                    margin: 10px 0;
+                    padding-left: 25px;
+                }}
+                
+                li {{
+                    margin: 5px 0;
+                }}
+                
+                strong {{
+                    color: #2c3e50;
+                    font-weight: 600;
+                }}
+                
+                code {{
+                    background-color: #f4f4f4;
+                    padding: 2px 5px;
+                    border-radius: 3px;
+                    font-family: 'Courier New', monospace;
+                }}
+                
+                @page {{
+                    size: A4;
+                    margin: 15mm;
+                    @bottom-center {{
+                        content: counter(page) " / " counter(pages);
+                        font-size: 9pt;
+                        color: #7f8c8d;
+                    }}
+                }}
+            </style>
+        </head>
+        <body>
+            {html_content}
+        </body>
+        </html>
+        """
+        
+        # HTML을 PDF로 변환
+        pdf_bytes = HTML(string=html_template).write_pdf()
+        
+        # BytesIO 객체로 변환
+        pdf_buffer = io.BytesIO(pdf_bytes)
+        pdf_buffer.seek(0)
+        
+        # 파일명 생성
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        pdf_filename = f"{filename}_{timestamp}.pdf"
+        
+        return send_file(
+            pdf_buffer,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=pdf_filename
+        )
+        
+    except Exception as e:
+        logger.error(f"PDF 생성 오류: {e}")
+        return jsonify({
+            'success': False,
+            'error': f'PDF 생성 중 오류가 발생했습니다: {str(e)}'
+        }), 500
 
 # Vercel 환경에서는 import만 되고 실행되지 않음
 # 로컬 환경에서만 실행

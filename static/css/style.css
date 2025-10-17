@@ -1086,3 +1086,111 @@ mark {
     box-shadow: var(--shadow-lg);
     transform: translateY(-2px);
 }
+
+/* Unified Comparison Layout Styles */
+.unified-comparison-layout {
+    margin-top: 2rem;
+}
+
+.summary-comparison-section {
+    margin-bottom: 2rem;
+}
+
+.comparison-table-container {
+    background: #f8fafc;
+    border-radius: var(--border-radius);
+    padding: 1rem;
+}
+
+.comparison-table-container .table {
+    margin-bottom: 0;
+    background: white;
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.comparison-table-container .table th {
+    border: none;
+    font-weight: 600;
+    padding: 1rem 0.75rem;
+    color: white !important;
+}
+
+.comparison-table-container .table td {
+    border: none;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 0.75rem;
+    vertical-align: middle;
+}
+
+.comparison-table-container .table tbody tr:hover {
+    background-color: #f8fafc;
+}
+
+.comparison-table-container .table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.product-detail-card {
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+}
+
+.product-detail-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.product-detail-card .card-header {
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+.product-detail-card .card-body {
+    padding: 1.5rem;
+}
+
+/* Summary Comparison Styles (기존 스타일 유지) */
+.summary-comparison {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    margin: 1rem 0;
+}
+
+.summary-comparison h5 {
+    color: var(--primary-color);
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.comparison-row {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    transition: var(--transition);
+}
+
+.comparison-row:hover {
+    box-shadow: var(--shadow-sm);
+    border-color: var(--primary-color);
+}
+
+.comparison-row .badge {
+    font-size: 0.75rem;
+    margin-bottom: 0.25rem;
+}
+
+.comparison-row .small {
+    font-size: 0.875rem;
+    color: var(--dark-color);
+    font-weight: 500;
+}
+
+.comparison-row strong {
+    color: var(--primary-color);
+    font-size: 0.875rem;
+}

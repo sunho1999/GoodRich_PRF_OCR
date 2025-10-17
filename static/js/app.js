@@ -655,30 +655,53 @@ class PDFAnalyzer {
                     </div>
                 </div>
 
-                <!-- Comparison Grid -->
-                <div class="row g-4">
-                    <div class="col-lg-6">
-                        <div class="product-comparison-card border-primary">
-                            <div class="card-header bg-primary text-white">
-                                <h4 class="mb-0">
-                                    <i class="fas fa-file-alt me-2"></i>상품 A
-                                </h4>
-                            </div>
-                            <div class="card-body">
-                                ${this.renderComparisonContent(parsedComparison.productA)}
-                            </div>
-                        </div>
+                <!-- 통합 비교 레이아웃 -->
+                <div class="unified-comparison-layout">
+                    <!-- 요약 비교표 -->
+                    <div class="summary-comparison-section mb-4">
+                        ${this.renderUnifiedSummaryComparison()}
                     </div>
-                    <div class="col-lg-6">
-                        <div class="product-comparison-card border-secondary">
-                            <div class="card-header bg-secondary text-white">
-                                <h4 class="mb-0">
-                                    <i class="fas fa-file-alt me-2"></i>상품 B
-                                </h4>
-                            </div>
-                            <div class="card-body">
-                                ${this.renderComparisonContent(parsedComparison.productB)}
-                            </div>
+                    
+                </div>
+            </div>
+        `;
+    }
+
+    renderUnifiedSummaryComparison() {
+        const summaryInfo = this.extractSummaryInfoFromResponse();
+        if (!summaryInfo) {
+            return `
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    상세 비교 분석 결과를 확인하세요.
+                    <br><small>PDF 다운로드를 통해 완전한 분석 보고서를 받아보세요.</small>
+                </div>
+            `;
+        }
+
+        return `
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-table me-2"></i>상품 기본 정보 비교
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="comparison-table-container">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="text-center">구분</th>
+                                        <th class="text-center bg-primary text-white">상품 A</th>
+                                        <th class="text-center bg-secondary text-white">상품 B</th>
+                                        <th class="text-center bg-warning text-dark">차이점</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${this.generateComparisonTableRows(summaryInfo)}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -686,7 +709,32 @@ class PDFAnalyzer {
         `;
     }
 
-    renderInfoCard(title, icon, color, content) {
+    generateComparisonTableRows(summaryInfo) {
+        const importantFields = ['상품명', '보험사', '상품타입', '월보험료', '납입기간', '만기기간', '납입방식'];
+        let rows = '';
+        
+        importantFields.forEach(field => {
+            if (summaryInfo[field]) {
+                const data = summaryInfo[field];
+                const productA = data.productA || '-';
+                const productB = data.productB || '-';
+                const difference = data.difference || '-';
+                
+                rows += `
+                    <tr>
+                        <td class="fw-bold">${field}</td>
+                        <td class="text-center">${productA}</td>
+                        <td class="text-center">${productB}</td>
+                        <td class="text-center">${difference}</td>
+                    </tr>
+                `;
+            }
+        });
+        
+        return rows;
+    }
+
+    renderInfoCard(title, icon, color, content, isProductA = false) {
         return `
             <div class="info-card mb-4">
                 <div class="card h-100">
@@ -697,7 +745,7 @@ class PDFAnalyzer {
                     </div>
                     <div class="card-body">
                         <div class="info-grid">
-                            ${this.formatInfoContent(content)}
+                            ${this.formatInfoContent(content, false, isProductA)}
                         </div>
                     </div>
                 </div>
@@ -807,7 +855,7 @@ class PDFAnalyzer {
         `;
     }
 
-    renderComparisonContent(productData) {
+    renderComparisonContent(productData, isProductA = false) {
         const productName = this.extractProductName(productData.header || '');
         const basicInfo = this.parseBasicInfo(productData.basic_info || '');
         const premiumInfo = this.parsePremiumInfo(productData.premium_info || '');
@@ -817,7 +865,7 @@ class PDFAnalyzer {
             <div class="comparison-content">
                 <h6 class="text-primary mb-3">${productName}</h6>
                 <div class="info-summary mb-3">
-                    ${this.formatInfoContent(basicInfo, true)}
+                    ${this.formatInfoContent(basicInfo, true, isProductA)}
                 </div>
                 <div class="premium-summary mb-3">
                     ${this.formatPremiumInfo(premiumInfo, true)}
@@ -1261,7 +1309,7 @@ class PDFAnalyzer {
         return content;
     }
 
-    formatInfoContent(info, isCompact = false) {
+    formatInfoContent(info, isCompact = false, isProductA = false) {
         console.log('Formatting info content:', info); // 디버깅용
         
         if (typeof info === 'string') {
@@ -1290,20 +1338,95 @@ class PDFAnalyzer {
         }
         
         if (!hasAnyInfo) {
-            // 기본 정보가 없는 경우 원본 섹션 내용을 표시
-            if (typeof info === 'object' && Object.keys(info).length === 0) {
+            // 상품 A와 상품 B 모두 기본 메시지 표시
+            if (isProductA) {
                 html = `
-                    <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        구조화된 기본 정보를 추출할 수 없었습니다.
-                        <br><small>상세 내용 탭에서 전체 분석 결과를 확인하세요.</small>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        상품 A 상세 정보
+                        <br><small>위의 통합 비교표에서 전체 정보를 확인하세요.</small>
                     </div>
                 `;
             } else {
-                html = '<p class="text-muted">정보를 추출할 수 없습니다.</p>';
+                html = `
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        상품 B 상세 정보
+                        <br><small>위의 통합 비교표에서 전체 정보를 확인하세요.</small>
+                    </div>
+                `;
             }
         }
         
+        return html;
+    }
+
+    extractSummaryInfoFromResponse() {
+        if (!this.currentResults || !this.currentResults.comparison_analysis) {
+            return null;
+        }
+
+        const content = this.currentResults.comparison_analysis;
+        
+        // 요약 비교표 섹션 추출
+        const summaryMatch = content.match(/## 1️⃣ 요약 비교표 \(상품 기본정보\)([\s\S]*?)(?=## 2️⃣|$)/);
+        if (!summaryMatch) return null;
+
+        const tableContent = summaryMatch[1];
+        
+        // 표 데이터 파싱
+        const rows = tableContent.match(/\|([^|]+)\|([^|]+)\|([^|]+)\|([^|]+)\|/g);
+        if (!rows || rows.length < 2) return null;
+
+        const summaryInfo = {};
+        
+        // 헤더 제외하고 데이터 행만 처리
+        for (let i = 1; i < rows.length; i++) {
+            const cells = rows[i].split('|').map(cell => cell.trim()).filter(cell => cell);
+            if (cells.length >= 4) {
+                const key = cells[0].replace(/\*\*/g, '').trim();
+                const productA = cells[1].replace(/\*\*/g, '').trim();
+                const productB = cells[2].replace(/\*\*/g, '').trim();
+                const difference = cells[3].replace(/\*\*/g, '').trim();
+                
+                summaryInfo[key] = { productA, productB, difference };
+            }
+        }
+
+        return Object.keys(summaryInfo).length > 0 ? summaryInfo : null;
+    }
+
+    formatSummaryComparison(summaryInfo) {
+        let html = '<div class="summary-comparison">';
+        html += '<h5 class="mb-3"><i class="fas fa-table me-2"></i>상품 기본 정보 비교</h5>';
+        
+        const importantFields = ['상품명', '보험사', '상품타입', '월보험료', '납입기간', '만기기간', '납입방식'];
+        
+        importantFields.forEach(field => {
+            if (summaryInfo[field]) {
+                const data = summaryInfo[field];
+                html += `
+                    <div class="comparison-row mb-2">
+                        <div class="row">
+                            <div class="col-3"><strong>${field}</strong></div>
+                            <div class="col-4">
+                                <span class="badge bg-primary">상품 A</span>
+                                <div class="small">${data.productA}</div>
+                            </div>
+                            <div class="col-4">
+                                <span class="badge bg-success">상품 B</span>
+                                <div class="small">${data.productB}</div>
+                            </div>
+                            <div class="col-1">
+                                ${data.difference !== '-' ? `<small class="text-muted">${data.difference}</small>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        });
+        
+        html += '</div>';
         return html;
     }
 
@@ -1336,10 +1459,10 @@ class PDFAnalyzer {
         if (!hasAnyInfo) {
             if (typeof info === 'object' && Object.keys(info).length === 0) {
                 html = `
-                    <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        구조화된 보험료 정보를 추출할 수 없었습니다.
-                        <br><small>상세 내용 탭에서 전체 분석 결과를 확인하세요.</small>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        상세 보험료 비교 정보를 확인하세요.
+                        <br><small>PDF 다운로드를 통해 완전한 분석 보고서를 받아보세요.</small>
                     </div>
                 `;
             } else {
@@ -2044,15 +2167,43 @@ function downloadResults() {
         content = '분석 결과가 없습니다.';
     }
 
-    const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `분석결과_${new Date().toISOString().slice(0, 10)}.md`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // PDF 다운로드
+    downloadAsPDF(content);
+}
+
+async function downloadAsPDF(content) {
+    try {
+        const response = await fetch('/api/generate_pdf', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                content: content,
+                filename: '보험상품_분석결과'
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'PDF 생성에 실패했습니다.');
+        }
+
+        // PDF 파일 다운로드
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `보험상품_분석결과_${new Date().toISOString().slice(0, 10)}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+    } catch (error) {
+        console.error('PDF 다운로드 오류:', error);
+        alert(`PDF 다운로드 중 오류가 발생했습니다: ${error.message}`);
+    }
 }
 
 // 애플리케이션 초기화
