@@ -766,7 +766,7 @@ def generate_pdf():
         """
         
         # HTML을 PDF로 변환
-        pdf_bytes = HTML(string=html_template).write_pdf()
+        pdf_bytes = HTML(string=html_template, base_url='.').write_pdf()
         
         # BytesIO 객체로 변환
         pdf_buffer = io.BytesIO(pdf_bytes)
