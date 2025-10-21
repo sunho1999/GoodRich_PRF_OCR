@@ -6,7 +6,6 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     # WeasyPrint 필수 의존성 (Ubuntu ≥ 20.04)
     libpango-1.0-0 \
-    libpango1.0-0 \
     libharfbuzz0b \
     libpangoft2-1.0-0 \
     libharfbuzz-subset0 \
