@@ -2,11 +2,25 @@ FROM python:3.9-slim
 
 WORKDIR /app
 
-# 최소한의 시스템 패키지만 설치하고 캐시 정리
+# WeasyPrint 의존성 설치
 RUN apt-get update && apt-get install -y \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
+    libxrender1 \
+    libx11-6 \
+    libpango-1.0-0 \
+    libharfbuzz0b \
+    libpangoft2-1.0-0 \
+    libgdk-pixbuf-2.0-0 \
+    libffi-dev \
+    shared-mime-info \
+    libcairo2 \
+    libcairo-gobject2 \
+    libpangocairo-1.0-0 \
+    fonts-noto-cjk \
+    fonts-dejavu-core \
+    fonts-liberation \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /tmp/* \
