@@ -706,7 +706,7 @@ def generate_pdf():
                     text-align: left;
                     padding-left: 8px;
                     font-weight: 600;
-                    background-color: #f8f9fa;
+                    background-color: #f8f9fa !important;
                 }}
                 
                 /* 나머지 컬럼 */
@@ -734,32 +734,24 @@ def generate_pdf():
                 }}
                 
                 /* 교차 행 배경색 (노란색/파란색) */
-                /* 상품 A 컬럼 (2, 3) */
+                /* 홀수 행 - 전체 노란색 */
                 tbody tr:nth-child(odd) td:nth-child(2),
-                tbody tr:nth-child(odd) td:nth-child(3) {{
-                    background-color: #FFF9E6;
-                }}
-                
-                tbody tr:nth-child(even) td:nth-child(2),
-                tbody tr:nth-child(even) td:nth-child(3) {{
-                    background-color: #E8F4FD;
-                }}
-                
-                /* 상품 B 컬럼 (4, 5) */
+                tbody tr:nth-child(odd) td:nth-child(3),
                 tbody tr:nth-child(odd) td:nth-child(4),
-                tbody tr:nth-child(odd) td:nth-child(5) {{
-                    background-color: #E8F4FD;
-                }}
-                
-                tbody tr:nth-child(even) td:nth-child(4),
-                tbody tr:nth-child(even) td:nth-child(5) {{
+                tbody tr:nth-child(odd) td:nth-child(5),
+                tbody tr:nth-child(odd) td:nth-child(6),
+                tbody tr:nth-child(odd) td:nth-child(7) {{
                     background-color: #FFF9E6;
                 }}
                 
-                /* 보험료 컬럼 강조 (빨간색) */
-                tbody td:nth-child(3), tbody td:nth-child(5) {{
-                    color: #dc3545;
-                    font-weight: 700;
+                /* 짝수 행 - 전체 파란색 */
+                tbody tr:nth-child(even) td:nth-child(2),
+                tbody tr:nth-child(even) td:nth-child(3),
+                tbody tr:nth-child(even) td:nth-child(4),
+                tbody tr:nth-child(even) td:nth-child(5),
+                tbody tr:nth-child(even) td:nth-child(6),
+                tbody tr:nth-child(even) td:nth-child(7) {{
+                    background-color: #E8F4FD;
                 }}
                 
                 /* 신규 담보 강조 */
