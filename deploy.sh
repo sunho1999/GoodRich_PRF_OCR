@@ -105,13 +105,18 @@ fi
 
 # GitHub에서 최신 코드 클론 또는 업데이트
 echo "📥 GitHub에서 최신 코드 가져오기..."
+BRANCH="${DEPLOY_BRANCH:-main}"
+echo "배포 브랜치: $BRANCH"
+
 if [ -d ".git" ]; then
     echo "기존 저장소 업데이트 중..."
-    git pull origin main || error_exit "Git pull 실패"
+    git fetch origin || error_exit "Git fetch 실패"
+    git checkout $BRANCH || error_exit "Git checkout 실패"
+    git pull origin $BRANCH || error_exit "Git pull 실패"
     success_msg "기존 저장소 업데이트 완료"
 else
     echo "새 저장소 클론 중..."
-    git clone https://github.com/sunho1999/GoodRich_PRF_OCR.git . || error_exit "Git clone 실패"
+    git clone -b $BRANCH https://github.com/sunho1999/GoodRich_PRF_OCR.git . || error_exit "Git clone 실패"
     success_msg "저장소 클론 완료"
 fi
 
