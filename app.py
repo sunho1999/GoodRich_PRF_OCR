@@ -659,20 +659,18 @@ def generate_pdf():
                 
                 body {{
                     font-family: 'Noto Sans KR', sans-serif;
-                    line-height: 1.6;
+                    line-height: 1.4;
                     color: #333;
-                    max-width: 210mm;
-                    margin: 0 auto;
-                    padding: 20mm;
-                    font-size: 11pt;
+                    margin: 0;
+                    padding: 10mm;
+                    font-size: 9pt;
                 }}
                 
                 h1 {{
                     color: #2c3e50;
-                    border-bottom: 3px solid #3498db;
-                    padding-bottom: 10px;
-                    margin-top: 30px;
-                    font-size: 24pt;
+                    text-align: center;
+                    margin: 10mm 0 5mm 0;
+                    font-size: 18pt;
                     font-weight: 700;
                 }}
                 
@@ -698,27 +696,81 @@ def generate_pdf():
                 table {{
                     width: 100%;
                     border-collapse: collapse;
-                    margin: 15px 0;
-                    font-size: 10pt;
-                    page-break-inside: auto;
-                    page-break-before: avoid;
-                    page-break-after: avoid;
+                    margin: 5mm 0;
+                    font-size: 8pt;
                 }}
                 
-                th, td {{
-                    border: 1px solid #ddd;
-                    padding: 10px;
+                /* 보장 항목 컬럼 (첫 번째 컬럼) */
+                th:first-child, td:first-child {{
+                    width: 18%;
                     text-align: left;
+                    padding-left: 8px;
+                    font-weight: 600;
+                    background-color: #f8f9fa;
                 }}
                 
-                th {{
-                    background-color: #3498db;
+                /* 나머지 컬럼 */
+                th, td {{
+                    border: 1px solid #d0d0d0;
+                    padding: 6px 4px;
+                    text-align: center;
+                    vertical-align: middle;
+                }}
+                
+                /* 메인 헤더 (상품 A, 상품 B) */
+                thead tr:first-child th {{
+                    background: linear-gradient(135deg, #6B7FD7 0%, #8B9FE8 100%);
+                    color: white;
+                    font-weight: 700;
+                    font-size: 9pt;
+                    padding: 8px;
+                }}
+                
+                /* 서브 헤더 (납기만기, 가입금액, 보험료) */
+                thead tr:nth-child(2) th {{
+                    background: linear-gradient(135deg, #8B9FE8 0%, #A5B5F5 100%);
                     color: white;
                     font-weight: 600;
+                    font-size: 7pt;
+                    padding: 5px;
                 }}
                 
-                tr:nth-child(even) {{
-                    background-color: #f8f9fa;
+                /* 보장 항목 컬럼 헤더 스타일 */
+                thead th:first-child {{
+                    background: linear-gradient(135deg, #6B7FD7 0%, #8B9FE8 100%);
+                    color: white;
+                    font-weight: 700;
+                }}
+                
+                /* 교차 행 배경색 (노란색/파란색) */
+                tbody tr:nth-child(odd) td:nth-child(2),
+                tbody tr:nth-child(odd) td:nth-child(3),
+                tbody tr:nth-child(odd) td:nth-child(4) {{
+                    background-color: #FFF9E6;
+                }}
+                
+                tbody tr:nth-child(even) td:nth-child(2),
+                tbody tr:nth-child(even) td:nth-child(3),
+                tbody tr:nth-child(even) td:nth-child(4) {{
+                    background-color: #E8F4FD;
+                }}
+                
+                tbody tr:nth-child(odd) td:nth-child(5),
+                tbody tr:nth-child(odd) td:nth-child(6),
+                tbody tr:nth-child(odd) td:nth-child(7) {{
+                    background-color: #E8F4FD;
+                }}
+                
+                tbody tr:nth-child(even) td:nth-child(5),
+                tbody tr:nth-child(even) td:nth-child(6),
+                tbody tr:nth-child(even) td:nth-child(7) {{
+                    background-color: #FFF9E6;
+                }}
+                
+                /* 신규 담보 강조 */
+                .new-coverage {{
+                    background-color: #d4edda !important;
+                    border-left: 3px solid #28a745 !important;
                 }}
                 
                 hr {{
