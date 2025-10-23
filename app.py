@@ -702,7 +702,7 @@ def generate_pdf():
                 
                 /* 보장 항목 컬럼 (첫 번째 컬럼) */
                 th:first-child, td:first-child {{
-                    width: 18%;
+                    width: 25%;
                     text-align: left;
                     padding-left: 8px;
                     font-weight: 600;
@@ -717,25 +717,16 @@ def generate_pdf():
                     vertical-align: middle;
                 }}
                 
-                /* 메인 헤더 (상품 A, 상품 B) */
-                thead tr:first-child th {{
+                /* 메인 헤더 */
+                thead th {{
                     background: linear-gradient(135deg, #6B7FD7 0%, #8B9FE8 100%);
                     color: white;
                     font-weight: 700;
-                    font-size: 9pt;
+                    font-size: 8pt;
                     padding: 8px;
                 }}
                 
-                /* 서브 헤더 (납기만기, 가입금액, 보험료) */
-                thead tr:nth-child(2) th {{
-                    background: linear-gradient(135deg, #8B9FE8 0%, #A5B5F5 100%);
-                    color: white;
-                    font-weight: 600;
-                    font-size: 7pt;
-                    padding: 5px;
-                }}
-                
-                /* 보장 항목 컬럼 헤더 스타일 */
+                /* 보장 항목 컬럼 헤더 */
                 thead th:first-child {{
                     background: linear-gradient(135deg, #6B7FD7 0%, #8B9FE8 100%);
                     color: white;
@@ -743,28 +734,32 @@ def generate_pdf():
                 }}
                 
                 /* 교차 행 배경색 (노란색/파란색) */
+                /* 상품 A 컬럼 (2, 3) */
                 tbody tr:nth-child(odd) td:nth-child(2),
-                tbody tr:nth-child(odd) td:nth-child(3),
-                tbody tr:nth-child(odd) td:nth-child(4) {{
+                tbody tr:nth-child(odd) td:nth-child(3) {{
                     background-color: #FFF9E6;
                 }}
                 
                 tbody tr:nth-child(even) td:nth-child(2),
-                tbody tr:nth-child(even) td:nth-child(3),
-                tbody tr:nth-child(even) td:nth-child(4) {{
+                tbody tr:nth-child(even) td:nth-child(3) {{
                     background-color: #E8F4FD;
                 }}
                 
-                tbody tr:nth-child(odd) td:nth-child(5),
-                tbody tr:nth-child(odd) td:nth-child(6),
-                tbody tr:nth-child(odd) td:nth-child(7) {{
+                /* 상품 B 컬럼 (4, 5) */
+                tbody tr:nth-child(odd) td:nth-child(4),
+                tbody tr:nth-child(odd) td:nth-child(5) {{
                     background-color: #E8F4FD;
                 }}
                 
-                tbody tr:nth-child(even) td:nth-child(5),
-                tbody tr:nth-child(even) td:nth-child(6),
-                tbody tr:nth-child(even) td:nth-child(7) {{
+                tbody tr:nth-child(even) td:nth-child(4),
+                tbody tr:nth-child(even) td:nth-child(5) {{
                     background-color: #FFF9E6;
+                }}
+                
+                /* 보험료 컬럼 강조 (빨간색) */
+                tbody td:nth-child(3), tbody td:nth-child(5) {{
+                    color: #dc3545;
+                    font-weight: 700;
                 }}
                 
                 /* 신규 담보 강조 */
