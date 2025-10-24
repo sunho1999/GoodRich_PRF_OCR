@@ -697,7 +697,7 @@ def generate_pdf():
                     width: 100%;
                     border-collapse: collapse;
                     margin: 5mm 0;
-                    font-size: 8pt;
+                    font-size: 7pt;
                 }}
                 
                 /* 보장 항목 컬럼 (첫 번째 컬럼) */
@@ -715,6 +715,11 @@ def generate_pdf():
                     padding: 6px 4px;
                     text-align: center;
                     vertical-align: middle;
+                }}
+                
+                /* 4번째와 5번째 컬럼 사이 굵은 줄 */
+                th:nth-child(5), td:nth-child(5) {{
+                    border-left: 3px solid #666;
                 }}
                 
                 /* 메인 헤더 */
