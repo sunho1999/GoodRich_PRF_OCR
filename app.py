@@ -719,7 +719,7 @@ def generate_pdf():
                 
                 /* 4번째와 5번째 컬럼 사이 굵은 줄 */
                 th:nth-child(5), td:nth-child(5) {{
-                    border-left: 3px solid #666;
+                    border-left: 3px solid #8B9FE8;
                 }}
                 
                 /* 메인 헤더 */
