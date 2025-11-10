@@ -176,7 +176,8 @@ class PDFAnalyzer {
             this.showLoading('2개 상품 비교 분석을 시작합니다...');
 
             const product1Name = document.getElementById('product1_name').value.trim();
-            const product2Name = document.getElementById('product2_name').value.trim();
+            const product2NameInput = document.getElementById('product2_name');
+            const product2Name = product2NameInput ? product2NameInput.value.trim() : '리모델링 상품';
 
             // 첫 번째 상품 소스
             const product1UrlTab = document.getElementById('product1-url-tab');
@@ -206,10 +207,10 @@ class PDFAnalyzer {
             if (isProduct2UrlActive) {
                 source2 = document.getElementById('product2_url').value.trim();
                 source2Type = 'url';
-                if (!source2) throw new Error('두 번째 상품의 PDF URL을 입력해주세요.');
+                if (!source2) throw new Error('리모델링 상품의 PDF URL을 입력해주세요.');
             } else {
                 const fileInput = document.getElementById('product2_file');
-                if (!fileInput.files.length) throw new Error('두 번째 상품의 PDF 파일을 선택해주세요.');
+                if (!fileInput.files.length) throw new Error('리모델링 상품의 PDF 파일을 선택해주세요.');
                 source2 = await this.uploadFile(fileInput.files[0]);
                 source2Type = 'file';
             }
