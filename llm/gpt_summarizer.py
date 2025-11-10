@@ -829,7 +829,8 @@ class GPTSummarizer:
     
     def analyze_products_comparison(self, pages1: List[Dict[str, Any]], file1_name: str, 
                                     pages2: List[Dict[str, Any]], file2_name: str, 
-                                    custom_prompt: str = "") -> str:
+                                    custom_prompt: str = "",
+                                    required_coverages: Optional[List[str]] = None) -> str:
         """
         두 보험상품의 직접적인 비교 분석을 수행합니다.
         
@@ -867,7 +868,9 @@ class GPTSummarizer:
             table_data1 = self._extract_table_data_from_pages(pages1)
             table_data2 = self._extract_table_data_from_pages(pages2)
             
-            # 종합 비교 분석 프롬프트
+            # 필수 담보 지침
+            required_coverages = required_coverages or []
+
             user_instruction = ""
             if custom_prompt:
                 user_instruction = f"""
@@ -877,6 +880,15 @@ class GPTSummarizer:
 위 요청사항을 반드시 우선적으로 고려하여 분석을 진행해주세요.
 """
             
+            required_coverage_section = ""
+            if required_coverages:
+                coverage_lines = "\n".join(f"- {coverage}" for coverage in required_coverages)
+                required_coverage_section = (
+                    "🚨 **반드시 표에 포함해야 하는 담보 목록**:\n"
+                    f"{coverage_lines}\n\n"
+                    "위 담보는 문서에 해당 정보가 없어도 표에 행을 추가하고 값은 '해당 없음'으로 명시하세요.\n"
+                )
+
             prompt = f"""
 아래에는 두 가지 보험 상품의 보장 내역이 있습니다. 
 이 두 상품을 고객의 입장에서 쉽게 비교할 수 있도록 정리해 주세요.
@@ -885,6 +897,8 @@ class GPTSummarizer:
 비교 시, 보장 항목명에 포함된 숫자(금액, 기간, 납입년수)는 모두 수치로 인식하고, 단위(천원, 만원, 원)를 통일하여 비교하세요.
 
 {user_instruction}
+
+{required_coverage_section.strip()}
 
 **📊 표 데이터 (정확한 수치 비교용)**:
 {product1_label} 표 데이터: {table_data1}
@@ -986,10 +1000,11 @@ class GPTSummarizer:
 - 한쪽 상품에만 있는 담보는 "해당 없음"으로 표시하세요 
 - 동일 담보의 세부 구성(예: 입원일당/중환자실 등)은 한 행 안에서 비교하거나 필요 시 추가 행으로 분리하세요
 - 보장 설명이 부족하면 간단한 설명을 추가해 고객이 이해하기 쉽게 작성하세요
-- 주계약 담보 상세 비교 (최소 10개 이상)
-- 특약 담보 상세 비교 (최소 15개 이상)
-
-- 최소 다섯 줄 이상의 핵심 인사이트를 마지막에 간략하게 bullet 형태로 요약하세요 (섹션 제목 없이 작성)
+- 주계약 담보 상세 비교 (가능하면 20개 이상, 최소 15개 이상)
+- 특약 담보 상세 비교 (가능하면 30개 이상, 최소 20개 이상)
+- OCR 텍스트와 표 데이터에 존재하는 모든 담보명을 누락하지 말고 반드시 포함하세요
+- 위의 필수 담보 목록에 포함된 항목은 문서에 없더라도 '해당 없음'으로라도 반드시 별도 행을 만들어 추가하세요
+- 출력은 위 표 섹션으로만 구성하고, 추가 설명 문단이나 요약, 결론 섹션을 절대 작성하지 마세요
 - 모든 금액은 원본 문서의 정확한 숫자를 그대로 표기 (절대 반올림 금지)
 - 리모델링 관계 판단 시 상품명, 보험사, 시리즈명, 보장구조 종합 고려
 - 장기적 관점에서 총 비용과 보장 지속성 중시

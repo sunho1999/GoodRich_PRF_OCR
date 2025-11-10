@@ -218,6 +218,16 @@ class PDFAnalyzer {
             const customPromptElement = document.getElementById('custom_prompt');
             const customPrompt = customPromptElement ? customPromptElement.value.trim() : '';
 
+            // 필수 담보 목록
+            const requiredCoveragesElement = document.getElementById('required_coverages');
+            let requiredCoverages = [];
+            if (requiredCoveragesElement) {
+                requiredCoverages = requiredCoveragesElement.value
+                    .split(/[\n,;]/)
+                    .map(item => item.trim())
+                    .filter(item => item.length > 0);
+            }
+
             // 비교 분석 요청
             const response = await fetch('/api/analyze/compare', {
                 method: 'POST',
@@ -231,7 +241,8 @@ class PDFAnalyzer {
                     source2: source2,
                     source2_type: source2Type,
                     product2_name: product2Name,
-                    custom_prompt: customPrompt
+                    custom_prompt: customPrompt,
+                    required_coverages: requiredCoverages
                 })
             });
 

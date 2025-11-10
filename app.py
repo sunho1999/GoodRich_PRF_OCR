@@ -10,6 +10,7 @@ import threading
 import time
 import io
 from datetime import datetime
+import uuid
 import logging
 from werkzeug.utils import secure_filename
 
@@ -305,7 +306,8 @@ def upload_file():
         # 안전한 파일명으로 저장
         filename = secure_filename(file.filename)
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f"{timestamp}_{filename}"
+        unique_suffix = uuid.uuid4().hex[:8]
+        filename = f"{timestamp}_{unique_suffix}_{filename}"
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         
         file.save(file_path)
@@ -422,6 +424,11 @@ def analyze_compare():
         
         # 사용자 정의 프롬프트
         custom_prompt = data.get('custom_prompt', '').strip()
+        required_coverages = data.get('required_coverages', [])
+        if required_coverages and isinstance(required_coverages, list):
+            required_coverages = [str(item).strip() for item in required_coverages if str(item).strip()]
+        else:
+            required_coverages = []
         
         if not source1 or not source2:
             return jsonify({'success': False, 'error': '비교할 두 개의 소스가 모두 필요합니다.'})
@@ -450,7 +457,8 @@ def analyze_compare():
                 comparison_analysis = analyzer.gpt_summarizer.analyze_products_comparison(
                     result1['pages'], product1_name,
                     result2['pages'], product2_name,
-                    custom_prompt=custom_prompt
+                    custom_prompt=custom_prompt,
+                    required_coverages=required_coverages
                 )
                 logger.info(f"📊 종합 비교 분석 결과 길이: {len(comparison_analysis) if comparison_analysis else 0}")
             except Exception as e:
