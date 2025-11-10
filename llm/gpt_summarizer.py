@@ -860,6 +860,8 @@ class GPTSummarizer:
             
             pages1_count = len(pages1)
             pages2_count = len(pages2)
+            product1_label = file1_name or "상품 A"
+            product2_label = file2_name or "상품 B"
             
             # 표 데이터 추출 및 주입
             table_data1 = self._extract_table_data_from_pages(pages1)
@@ -885,15 +887,15 @@ class GPTSummarizer:
 {user_instruction}
 
 **📊 표 데이터 (정확한 수치 비교용)**:
-상품 A 표 데이터: {table_data1}
-상품 B 표 데이터: {table_data2}
+{product1_label} 표 데이터: {table_data1}
+{product2_label} 표 데이터: {table_data2}
 
-**상품 A**: {file1_name}
+**{product1_label}**: {file1_name}
 페이지 수: {pages1_count}
 추출된 텍스트:
 {smart_text1}
 
-**상품 B**: {file2_name}  
+**{product2_label}**: {file2_name}  
 페이지 수: {pages2_count}
 추출된 텍스트:
 {smart_text2}
@@ -944,10 +946,10 @@ class GPTSummarizer:
   (예: 동일 보험사, 동일 시리즈명, 만기나 담보 구성 확장)
 - 단순히 보험료가 낮다고 좋은 상품으로 판단하지 마세요.
 - 재갱신 주기, 납입기간, 만기, 물가상승 리스크 등을 함께 고려하세요.
-- 만약 상품 B가 리모델링형이라면 "고객이 더 높은 초기 보험료를 감수할 근거"를 논리적으로 제시하세요.
+- 만약 {product2_label}가 리모델링형이라면 "고객이 더 높은 초기 보험료를 감수할 근거"를 논리적으로 제시하세요.
 - 결과를 **요약 → 가입담보 비교표 → 간단 요약** 순서로 작성하세요.
 - 질병입원일당, 질병수술담보, 상해입원일당 등 모든 입원/수술 관련 보장을 놓치지 마세요
-- 상품 A와 B의 모든 보장 항목을 나열하고 비교하세요
+- {product1_label}와 {product2_label}의 모든 보장 항목을 나열하고 비교하세요
 - 문장은 반드시 **문장 단위로 줄바꿈**하여 가독성을 높이세요.
 - 2-1. 한 문장이 너무 길어져도 **적절하게 줄바꿈**하여 가독성을 높이세요.
 - 2-2. 내용이 바뀌는 문단은 반드시 **두 번 줄바꿈**하여 가독성을 높이세요.
@@ -958,9 +960,9 @@ class GPTSummarizer:
 # 🏆 보험상품 비교 분석 보고서
 
 ## 1️⃣ 요약 비교표 (상품 기본정보)
-| 구분 | 상품 A | 상품 B | 차이점 |
+| 구분 | {product1_label} | {product2_label} | 차이점 |
 |------|--------|--------|--------|
-| **상품명** | [상품 A명] | [상품 B명] | - |
+| **상품명** | [{product1_label} 상품명] | [{product2_label} 상품명] | - |
 | **보험사** | [보험사] | [보험사] | - |
 | **상품타입** | [타입] | [타입] | - |
 | **월보험료** | [금액]원 🚨 | [금액]원 🚨 | [차이]원 |
@@ -968,18 +970,13 @@ class GPTSummarizer:
 | **만기기간** | [만기] | [만기] | [차이] |
 | **납입방식** | [방식] | [방식] | - |
 
-## 2️⃣ 가입담보 비교표 (모든 담보를 빠짐없이 포함)
-| 보장 항목 | 상품 A 납입기간/만기 | 상품 A 가입금액 | 상품 A 보험료 | 상품 B 납입기간/만기 | 상품 B 가입금액 | 상품 B 보험료 |
+## 2️⃣ 주계약 담보 상세 비교  
+| 보장 항목 | {product1_label} 납입기간/만기 | {product1_label} 가입금액 | {product1_label} 보험료 | {product2_label} 납입기간/만기 | {product2_label} 가입금액 | {product2_label} 보험료 |
 -----------|----------------|--------------|----------------|--------------|----------------|--------------|
 | [담보명] | [기간] | [금액]원 | [금액]원 | [기간] | [금액]원 | [금액]원 |
 
-### 🔍 주계약 담보 상세 비교 (최소 10개 이상)
-| 보장 항목 | 상품 A 가입금액 | 상품 A 보험료 | 상품 B 가입금액 | 상품 B 보험료 | 주요 차이 |
-|-----------|--------------|----------------|--------------|----------------|-----------|
-| [담보명] | [금액]원 | [금액]원 | [금액]원 | [금액]원 | [A>B로 표기] |
-
-### ⭐ 특약 담보 상세 비교 (최소 15개 이상)
-| 보장 항목 | 상품 A 납입기간/만기 | 상품 A 가입금액 | 상품 A 보험료 | 상품 B 납입기간/만기 | 상품 B 가입금액 | 상품 B 보험료 |
+### ⭐ 특약 담보 상세 비교 
+| 보장 항목 | {product1_label} 납입기간/만기 | {product1_label} 가입금액 | {product1_label} 보험료 | {product2_label} 납입기간/만기 | {product2_label} 가입금액 | {product2_label} 보험료 |
 -----------|----------------|--------------|----------------|--------------|----------------|--------------|
 | [담보명] | [기간] | [금액]원 | [금액]원 | [기간] | [금액]원 | [금액]원 |
 
@@ -989,7 +986,6 @@ class GPTSummarizer:
 - 한쪽 상품에만 있는 담보는 "해당 없음"으로 표시하세요 
 - 동일 담보의 세부 구성(예: 입원일당/중환자실 등)은 한 행 안에서 비교하거나 필요 시 추가 행으로 분리하세요
 - 보장 설명이 부족하면 간단한 설명을 추가해 고객이 이해하기 쉽게 작성하세요
-- 가입담보 비교표 (모든 담보를 빠짐없이 포함)
 - 주계약 담보 상세 비교 (최소 10개 이상)
 - 특약 담보 상세 비교 (최소 15개 이상)
 
@@ -1033,8 +1029,8 @@ class GPTSummarizer:
             metadata = f"""🔍 보험상품 종합 비교 분석 결과
 {'='*60}
 
-📁 상품 A: {file1_name} ({pages1_count}페이지)
-📁 상품 B: {file2_name} ({pages2_count}페이지)
+📁 {product1_label}: {file1_name} ({pages1_count}페이지)
+📁 {product2_label}: {file2_name} ({pages2_count}페이지)
 
 {'='*60}
 
@@ -1053,15 +1049,17 @@ class GPTSummarizer:
             # 개별 분석 수행
             analysis1 = self.analyze_for_comparison(pages1, file1_name)
             analysis2 = self.analyze_for_comparison(pages2, file2_name)
-            
+            product1_label = file1_name or "상품 A"
+            product2_label = file2_name or "상품 B"
+
             return f"""# 🔍 기본 비교 분석 (GPT 분석 실패 시 대체)
 
-## 📊 상품 A 분석
+## 📊 {product1_label} 분석
 {analysis1}
 
 ---
 
-## 📊 상품 B 분석  
+## 📊 {product2_label} 분석  
 {analysis2}
 
 ---
