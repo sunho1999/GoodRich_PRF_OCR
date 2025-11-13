@@ -743,7 +743,71 @@ class PDFAnalyzer {
             }
         });
         
+        // 총 보험료 계산 (월보험료 * 납입기간)
+        const monthlyPremiumA = summaryInfo['월보험료']?.productA || '-';
+        const monthlyPremiumB = summaryInfo['월보험료']?.productB || '-';
+        const paymentPeriodA = summaryInfo['납입기간']?.productA || '-';
+        const paymentPeriodB = summaryInfo['납입기간']?.productB || '-';
+        
+        let totalPremiumA = '-';
+        let totalPremiumB = '-';
+        let totalPremiumDiff = '-';
+        
+        // 상품 A 총 보험료 계산
+        if (monthlyPremiumA !== '-' && paymentPeriodA !== '-') {
+            const monthlyAmountA = this.parseAmount(monthlyPremiumA);
+            const periodYearsA = this.parseYears(paymentPeriodA);
+            if (monthlyAmountA > 0 && periodYearsA > 0) {
+                const totalA = monthlyAmountA * periodYearsA * 12; // 월보험료 * 년수 * 12개월
+                totalPremiumA = totalA.toLocaleString() + '원';
+            }
+        }
+        
+        // 상품 B 총 보험료 계산
+        if (monthlyPremiumB !== '-' && paymentPeriodB !== '-') {
+            const monthlyAmountB = this.parseAmount(monthlyPremiumB);
+            const periodYearsB = this.parseYears(paymentPeriodB);
+            if (monthlyAmountB > 0 && periodYearsB > 0) {
+                const totalB = monthlyAmountB * periodYearsB * 12; // 월보험료 * 년수 * 12개월
+                totalPremiumB = totalB.toLocaleString() + '원';
+            }
+        }
+        
+        // 차이점 계산
+        if (totalPremiumA !== '-' && totalPremiumB !== '-') {
+            const amountA = this.parseAmount(totalPremiumA);
+            const amountB = this.parseAmount(totalPremiumB);
+            if (amountA > 0 && amountB > 0) {
+                const diff = Math.abs(amountB - amountA);
+                totalPremiumDiff = diff.toLocaleString() + '원';
+            }
+        }
+        
+        // 총 보험료 행 추가
+        rows += `
+            <tr class="table-warning fw-bold">
+                <td>총 보험료</td>
+                <td class="text-center">${totalPremiumA}</td>
+                <td class="text-center">${totalPremiumB}</td>
+                <td class="text-center">${totalPremiumDiff}</td>
+            </tr>
+        `;
+        
         return rows;
+    }
+    
+    // 금액 파싱 헬퍼 함수 (예: "38,200원" -> 38200)
+    parseAmount(amountStr) {
+        if (!amountStr || amountStr === '-') return 0;
+        const numericStr = amountStr.replace(/[^0-9]/g, '');
+        return parseInt(numericStr) || 0;
+    }
+    
+    // 년수 파싱 헬퍼 함수 (예: "20년" -> 20)
+    parseYears(periodStr) {
+        if (!periodStr || periodStr === '-') return 0;
+        const match = periodStr.match(/(\d+)\s*년/);
+        return match ? parseInt(match[1]) : 0;
     }
 
     renderInfoCard(title, icon, color, content, isProductA = false) {
@@ -1380,28 +1444,56 @@ class PDFAnalyzer {
 
         const content = this.currentResults.comparison_analysis;
         
-        // 요약 비교표 섹션 추출
-        const summaryMatch = content.match(/## 1️⃣ 요약 비교표 \(상품 기본정보\)([\s\S]*?)(?=## 2️⃣|$)/);
+        // 요약 비교표 섹션 추출 (다양한 패턴 시도)
+        let summaryMatch = content.match(/## 1️⃣ 요약 비교표 \(상품 기본정보\)([\s\S]*?)(?=## 2️⃣|$)/);
+        if (!summaryMatch) {
+            // 다른 패턴 시도
+            summaryMatch = content.match(/##\s*요약 비교표[^\n]*([\s\S]*?)(?=##|$)/);
+        }
+        if (!summaryMatch) {
+            // 마크다운 테이블이 있는 모든 섹션 찾기
+            summaryMatch = content.match(/(\|[^|]+\|[^|]+\|[^|]+\|[^|]+\|[\s\S]*?)(?=##|$)/);
+        }
         if (!summaryMatch) return null;
 
         const tableContent = summaryMatch[1];
         
-        // 표 데이터 파싱
-        const rows = tableContent.match(/\|([^|]+)\|([^|]+)\|([^|]+)\|([^|]+)\|/g);
-        if (!rows || rows.length < 2) return null;
+        // 표 데이터 파싱 (줄 단위로 처리)
+        const lines = tableContent.split('\n').filter(line => line.trim());
+        const rows = [];
+        
+        for (const line of lines) {
+            const trimmed = line.trim();
+            // 마크다운 테이블 행인지 확인 (|로 시작하고 끝남)
+            if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+                rows.push(trimmed);
+            }
+        }
+        
+        if (rows.length < 2) return null;
 
         const summaryInfo = {};
         
-        // 헤더 제외하고 데이터 행만 처리
+        // 헤더와 구분선 제외하고 데이터 행만 처리
         for (let i = 1; i < rows.length; i++) {
-            const cells = rows[i].split('|').map(cell => cell.trim()).filter(cell => cell);
+            const row = rows[i];
+            
+            // 구분선 행 제외 (--- 또는 :--- 같은 패턴)
+            if (row.match(/^[\|\s]*:?-+:?[\|\s]*$/)) {
+                continue;
+            }
+            
+            const cells = row.split('|').map(cell => cell.trim()).filter(cell => cell);
             if (cells.length >= 4) {
                 const key = cells[0].replace(/\*\*/g, '').trim();
                 const productA = cells[1].replace(/\*\*/g, '').trim();
                 const productB = cells[2].replace(/\*\*/g, '').trim();
                 const difference = cells[3].replace(/\*\*/g, '').trim();
                 
-                summaryInfo[key] = { productA, productB, difference };
+                // 빈 키는 제외
+                if (key && key.length > 0) {
+                    summaryInfo[key] = { productA, productB, difference };
+                }
             }
         }
 
