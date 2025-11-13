@@ -842,6 +842,208 @@ def generate_pdf():
             'error': f'PDF 생성 중 오류가 발생했습니다: {str(e)}'
         }), 500
 
+@app.route('/api/generate_excel', methods=['POST'])
+def generate_excel():
+    """분석 결과를 Excel로 생성하여 다운로드"""
+    try:
+        data = request.get_json()
+        markdown_content = data.get('content', '')
+        filename = data.get('filename', '보험상품_분석결과')
+        
+        if not markdown_content:
+            return jsonify({
+                'success': False,
+                'error': '변환할 내용이 없습니다.'
+            }), 400
+        
+        # Excel 생성 라이브러리 확인
+        try:
+            from openpyxl import Workbook
+            from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+            from openpyxl.utils import get_column_letter
+        except ImportError:
+            return jsonify({
+                'success': False,
+                'error': 'Excel 생성 기능이 사용 불가능합니다. openpyxl을 설치해주세요.'
+            }), 500
+        
+        # 워크북 생성
+        wb = Workbook()
+        wb.remove(wb.active)  # 기본 시트 제거
+        
+        # 마크다운 내용에서 표 추출
+        sections = extract_tables_from_markdown(markdown_content)
+        
+        # 표가 없으면 오류 반환
+        if not sections or all(not tables for tables in sections.values()):
+            return jsonify({
+                'success': False,
+                'error': '표 형식의 데이터가 없습니다. Excel로 변환할 수 있는 표가 필요합니다.'
+            }), 400
+        
+        # 각 섹션을 별도 시트로 생성
+        for section_name, tables in sections.items():
+            if not tables:
+                continue
+            
+            # 시트 생성
+            ws = wb.create_sheet(title=section_name[:31])  # Excel 시트 이름은 31자 제한
+            
+            # 스타일 정의
+            header_fill = PatternFill(start_color="6B7FD7", end_color="8B9FE8", fill_type="solid")
+            header_font = Font(bold=True, color="FFFFFF", size=11)
+            border = Border(
+                left=Side(style='thin'),
+                right=Side(style='thin'),
+                top=Side(style='thin'),
+                bottom=Side(style='thin')
+            )
+            center_alignment = Alignment(horizontal='center', vertical='center')
+            left_alignment = Alignment(horizontal='left', vertical='center')
+            
+            row_num = 1
+            
+            # 각 표를 시트에 추가
+            for table_idx, table in enumerate(tables):
+                if table_idx > 0:
+                    row_num += 2  # 표 사이 간격
+                
+                # 표 데이터를 시트에 작성
+                for r_idx, row in enumerate(table):
+                    for c_idx, cell_value in enumerate(row):
+                        cell = ws.cell(row=row_num + r_idx, column=c_idx + 1, value=cell_value)
+                        cell.border = border
+                        
+                        # 헤더 행 스타일 적용
+                        if r_idx == 0:
+                            cell.fill = header_fill
+                            cell.font = header_font
+                            cell.alignment = center_alignment
+                        else:
+                            # 첫 번째 열은 왼쪽 정렬, 나머지는 가운데 정렬
+                            if c_idx == 0:
+                                cell.alignment = left_alignment
+                            else:
+                                cell.alignment = center_alignment
+                            
+                            # 교차 행 배경색 적용
+                            if r_idx % 2 == 0:  # 짝수 행 (0-indexed이므로 실제로는 홀수 번째 행)
+                                cell.fill = PatternFill(start_color="FFF9E6", end_color="FFF9E6", fill_type="solid")
+                            else:  # 홀수 행 (실제로는 짝수 번째 행)
+                                cell.fill = PatternFill(start_color="E8F4FD", end_color="E8F4FD", fill_type="solid")
+                
+                # 열 너비 자동 조정
+                for col_idx in range(len(table[0]) if table else 0):
+                    max_length = 0
+                    col_letter = get_column_letter(col_idx + 1)
+                    
+                    for row in table:
+                        if col_idx < len(row):
+                            cell_value = str(row[col_idx])
+                            max_length = max(max_length, len(cell_value))
+                    
+                    # 최소 너비 설정
+                    adjusted_width = max(max_length + 2, 10)
+                    # 최대 너비 제한 (너무 넓지 않게)
+                    adjusted_width = min(adjusted_width, 50)
+                    ws.column_dimensions[col_letter].width = adjusted_width
+                
+                row_num += len(table)
+        
+        # 메모리에 Excel 파일 저장
+        excel_buffer = io.BytesIO()
+        wb.save(excel_buffer)
+        excel_buffer.seek(0)
+        
+        # 파일명 생성
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        excel_filename = f"{filename}_{timestamp}.xlsx"
+        
+        return send_file(
+            excel_buffer,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=excel_filename
+        )
+        
+    except Exception as e:
+        logger.error(f"Excel 생성 오류: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return jsonify({
+            'success': False,
+            'error': f'Excel 생성 중 오류가 발생했습니다: {str(e)}'
+        }), 500
+
+def extract_tables_from_markdown(markdown_content):
+    """
+    마크다운 내용에서 표를 추출하여 딕셔너리로 반환
+    반환 형식: {'시트명': [표1, 표2, ...]}
+    각 표는 2차원 리스트: [헤더행, 데이터행1, 데이터행2, ...]
+    """
+    sections = {}
+    lines = markdown_content.split('\n')
+    
+    current_section = None
+    current_table = None
+    in_table = False
+    
+    for line in lines:
+        line = line.strip()
+        
+        # 섹션 헤더 감지 (## 1. 요약 비교표, ## 2. 공통 가입담보 비교 등)
+        if line.startswith('##'):
+            # 현재 표가 있으면 저장
+            if current_table and current_section:
+                if current_section not in sections:
+                    sections[current_section] = []
+                sections[current_section].append(current_table)
+                current_table = None
+            
+            # 섹션 이름 추출
+            section_name = line.replace('##', '').strip()
+            # 번호 제거 (예: "1. 요약 비교표" -> "요약 비교표")
+            section_name = section_name.split('.', 1)[-1].strip() if '.' in section_name else section_name
+            current_section = section_name
+            in_table = False
+            continue
+        
+        # 마크다운 테이블 행 감지
+        if line.startswith('|') and line.endswith('|'):
+            if not in_table:
+                in_table = True
+                current_table = []
+            
+            # 셀 추출
+            cells = [cell.strip() for cell in line.split('|')[1:-1]]  # 첫 번째와 마지막 빈 요소 제거
+            
+            # 구분선 행 제외 (--- 또는 :--- 같은 패턴)
+            if all(cell.replace('-', '').replace(':', '').strip() == '' for cell in cells):
+                continue
+            
+            # 마크다운 강조 제거 (**텍스트** -> 텍스트)
+            cells = [cell.replace('**', '').replace('*', '').strip() for cell in cells]
+            
+            if cells:
+                current_table.append(cells)
+        else:
+            # 테이블이 끝남
+            if in_table and current_table:
+                if current_section:
+                    if current_section not in sections:
+                        sections[current_section] = []
+                    sections[current_section].append(current_table)
+                current_table = None
+            in_table = False
+    
+    # 마지막 표 저장
+    if current_table and current_section:
+        if current_section not in sections:
+            sections[current_section] = []
+        sections[current_section].append(current_table)
+    
+    return sections
+
 # Vercel 환경에서는 import만 되고 실행되지 않음
 # 로컬 환경에서만 실행
 if __name__ == '__main__':

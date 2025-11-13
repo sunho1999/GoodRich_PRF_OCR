@@ -2460,6 +2460,63 @@ async function downloadAsPDF(content) {
     }
 }
 
+function downloadResultsAsExcel() {
+    if (!window.pdfAnalyzer || !window.pdfAnalyzer.currentResults) {
+        alert('다운로드할 결과가 없습니다.');
+        return;
+    }
+
+    const results = window.pdfAnalyzer.currentResults;
+    let content = '';
+
+    if (results.analysis) {
+        content = results.analysis;
+    } else if (results.comparison_analysis) {
+        content = results.comparison_analysis;
+    } else {
+        alert('Excel로 변환할 분석 결과가 없습니다.');
+        return;
+    }
+
+    // Excel 다운로드
+    downloadAsExcel(content);
+}
+
+async function downloadAsExcel(content) {
+    try {
+        const response = await fetch('/api/generate_excel', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                content: content,
+                filename: '보험상품_분석결과'
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Excel 생성에 실패했습니다.');
+        }
+
+        // Excel 파일 다운로드
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `보험상품_분석결과_${new Date().toISOString().slice(0, 10)}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+    } catch (error) {
+        console.error('Excel 다운로드 오류:', error);
+        alert(`Excel 다운로드 중 오류가 발생했습니다: ${error.message}`);
+    }
+}
+
 // 애플리케이션 초기화
 document.addEventListener('DOMContentLoaded', () => {
     window.pdfAnalyzer = new PDFAnalyzer();
