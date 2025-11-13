@@ -673,7 +673,6 @@ class PDFAnalyzer {
                     <div class="summary-comparison-section mb-4">
                         ${this.renderUnifiedSummaryComparison()}
                     </div>
-                    
                 </div>
             </div>
         `;
@@ -728,9 +727,22 @@ class PDFAnalyzer {
         importantFields.forEach(field => {
             if (summaryInfo[field]) {
                 const data = summaryInfo[field];
-                const productA = data.productA || '-';
-                const productB = data.productB || '-';
-                const difference = data.difference || '-';
+                let productA = data.productA || '-';
+                let productB = data.productB || '-';
+                let difference = data.difference || '-';
+                
+                // 만기기간은 차이점을 계산하지 않고 항상 "-"로 표시
+                if (field === '만기기간') {
+                    difference = '-';
+                    // 만기기간에서 "천원", "만원" 같은 단위가 있는 경우 원 단위로 변환
+                    productA = this.normalizeCurrencyInText(productA);
+                    productB = this.normalizeCurrencyInText(productB);
+                } else {
+                    // 다른 필드에서도 "천원", "만원" 단위를 원 단위로 변환
+                    productA = this.normalizeCurrencyInText(productA);
+                    productB = this.normalizeCurrencyInText(productB);
+                    difference = this.normalizeCurrencyInText(difference);
+                }
                 
                 rows += `
                     <tr>
@@ -808,6 +820,31 @@ class PDFAnalyzer {
         if (!periodStr || periodStr === '-') return 0;
         const match = periodStr.match(/(\d+)\s*년/);
         return match ? parseInt(match[1]) : 0;
+    }
+    
+    // 금액 단위 정규화 함수 (예: "1,000천원" -> "1,000,000원", "100만원" -> "1,000,000원")
+    normalizeCurrencyInText(text) {
+        if (!text || text === '-') return text;
+        
+        // 천원 단위 변환 (예: "1,000천원" -> "1,000,000원")
+        text = text.replace(/([0-9,]+)\s*천원/g, (match, amount) => {
+            const numericAmount = parseInt(amount.replace(/,/g, '')) * 1000;
+            return numericAmount.toLocaleString() + '원';
+        });
+        
+        // 만원 단위 변환 (예: "100만원" -> "1,000,000원")
+        text = text.replace(/([0-9,]+)\s*만원/g, (match, amount) => {
+            const numericAmount = parseInt(amount.replace(/,/g, '')) * 10000;
+            return numericAmount.toLocaleString() + '원';
+        });
+        
+        // 억원 단위 변환 (예: "1억원" -> "100,000,000원", "1.5억원" -> "150,000,000원")
+        text = text.replace(/([0-9.]+)\s*억원/g, (match, amount) => {
+            const numericAmount = Math.round(parseFloat(amount) * 100000000);
+            return numericAmount.toLocaleString() + '원';
+        });
+        
+        return text;
     }
 
     renderInfoCard(title, icon, color, content, isProductA = false) {
@@ -1486,9 +1523,20 @@ class PDFAnalyzer {
             const cells = row.split('|').map(cell => cell.trim()).filter(cell => cell);
             if (cells.length >= 4) {
                 const key = cells[0].replace(/\*\*/g, '').trim();
-                const productA = cells[1].replace(/\*\*/g, '').trim();
-                const productB = cells[2].replace(/\*\*/g, '').trim();
-                const difference = cells[3].replace(/\*\*/g, '').trim();
+                let productA = cells[1].replace(/\*\*/g, '').trim();
+                let productB = cells[2].replace(/\*\*/g, '').trim();
+                let difference = cells[3].replace(/\*\*/g, '').trim();
+                
+                // 금액 단위 정규화 적용
+                productA = this.normalizeCurrencyInText(productA);
+                productB = this.normalizeCurrencyInText(productB);
+                
+                // 만기기간은 차이점을 항상 "-"로 설정
+                if (key === '만기기간') {
+                    difference = '-';
+                } else {
+                    difference = this.normalizeCurrencyInText(difference);
+                }
                 
                 // 빈 키는 제외
                 if (key && key.length > 0) {
@@ -1509,20 +1557,31 @@ class PDFAnalyzer {
         importantFields.forEach(field => {
             if (summaryInfo[field]) {
                 const data = summaryInfo[field];
+                let productA = this.normalizeCurrencyInText(data.productA || '-');
+                let productB = this.normalizeCurrencyInText(data.productB || '-');
+                let difference = data.difference || '-';
+                
+                // 만기기간은 차이점을 항상 "-"로 설정
+                if (field === '만기기간') {
+                    difference = '-';
+                } else {
+                    difference = this.normalizeCurrencyInText(difference);
+                }
+                
                 html += `
                     <div class="comparison-row mb-2">
                         <div class="row">
                             <div class="col-3"><strong>${field}</strong></div>
                             <div class="col-4">
                                 <span class="badge bg-primary">상품 A</span>
-                                <div class="small">${data.productA}</div>
+                                <div class="small">${productA}</div>
                             </div>
                             <div class="col-4">
                                 <span class="badge bg-success">상품 B</span>
-                                <div class="small">${data.productB}</div>
+                                <div class="small">${productB}</div>
                             </div>
                             <div class="col-1">
-                                ${data.difference !== '-' ? `<small class="text-muted">${data.difference}</small>` : ''}
+                                ${difference !== '-' ? `<small class="text-muted">${difference}</small>` : ''}
                             </div>
                         </div>
                     </div>
@@ -1954,14 +2013,105 @@ class PDFAnalyzer {
     }
 
     formatMarkdown(text) {
-        // 간단한 마크다운 형식 변환
-        return text
-            .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-            .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-            .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\*(.*?)\*/g, '<em>$1</em>')
-            .replace(/\n/g, '<br>');
+        if (!text) return '';
+        
+        // 금액 단위 정규화 먼저 적용
+        text = this.normalizeCurrencyInText(text);
+        
+        const lines = text.split('\n');
+        let html = '';
+        let inTable = false;
+        let tableRows = [];
+        
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            
+            // 마크다운 테이블 감지 (|로 시작하고 끝남)
+            if (line.startsWith('|') && line.endsWith('|')) {
+                if (!inTable) {
+                    // 테이블 시작
+                    inTable = true;
+                    tableRows = [];
+                }
+                tableRows.push(line);
+            } else {
+                // 테이블이 끝남
+                if (inTable && tableRows.length > 0) {
+                    html += this.renderMarkdownTable(tableRows);
+                    tableRows = [];
+                    inTable = false;
+                }
+                
+                // 일반 마크다운 형식 변환
+                if (line.startsWith('### ')) {
+                    html += `<h3>${line.substring(4)}</h3>`;
+                } else if (line.startsWith('## ')) {
+                    html += `<h2>${line.substring(3)}</h2>`;
+                } else if (line.startsWith('# ')) {
+                    html += `<h1>${line.substring(2)}</h1>`;
+                } else if (line) {
+                    let formattedLine = line
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*(.*?)\*/g, '<em>$1</em>');
+                    html += `<p>${formattedLine}</p>`;
+                } else {
+                    html += '<br>';
+                }
+            }
+        }
+        
+        // 마지막에 테이블이 남아있는 경우
+        if (inTable && tableRows.length > 0) {
+            html += this.renderMarkdownTable(tableRows);
+        }
+        
+        return html || text.replace(/\n/g, '<br>');
+    }
+    
+    renderMarkdownTable(tableRows) {
+        if (tableRows.length === 0) return '';
+        
+        let html = '<div class="table-responsive"><table class="table table-bordered table-hover table-sm">';
+        let headerAdded = false;
+        let tbodyOpened = false;
+        
+        for (let i = 0; i < tableRows.length; i++) {
+            const row = tableRows[i];
+            const cells = row.split('|').map(cell => cell.trim()).filter(cell => cell);
+            
+            // 구분선 행 제외 (--- 또는 :--- 같은 패턴)
+            if (row.match(/^[\|\s]*:?-+:?[\|\s]*$/)) {
+                continue;
+            }
+            
+            // 첫 번째 데이터 행은 헤더로 처리
+            if (!headerAdded) {
+                html += '<thead class="table-light"><tr>';
+                for (const cell of cells) {
+                    const cleanCell = cell.replace(/\*\*/g, '').trim();
+                    html += `<th class="text-center">${this.escapeHtml(cleanCell)}</th>`;
+                }
+                html += '</tr></thead><tbody>';
+                headerAdded = true;
+                tbodyOpened = true;
+            } else {
+                // 데이터 행
+                html += '<tr>';
+                for (const cell of cells) {
+                    const cleanCell = cell.replace(/\*\*/g, '').trim();
+                    // 금액 단위 정규화 적용
+                    const normalizedCell = this.normalizeCurrencyInText(cleanCell);
+                    html += `<td class="text-center">${this.escapeHtml(normalizedCell)}</td>`;
+                }
+                html += '</tr>';
+            }
+        }
+        
+        if (tbodyOpened) {
+            html += '</tbody>';
+        }
+        html += '</table></div>';
+        return html;
     }
 
     escapeHtml(text) {
