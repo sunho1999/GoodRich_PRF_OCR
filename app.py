@@ -869,7 +869,8 @@ def generate_excel():
         
         # 워크북 생성
         wb = Workbook()
-        wb.remove(wb.active)  # 기본 시트 제거
+        ws = wb.active
+        ws.title = "비교 분석 결과"  # 하나의 시트에 모든 내용 포함
         
         # 마크다운 내용에서 표 추출
         sections = extract_tables_from_markdown(markdown_content)
@@ -881,27 +882,48 @@ def generate_excel():
                 'error': '표 형식의 데이터가 없습니다. Excel로 변환할 수 있는 표가 필요합니다.'
             }), 400
         
-        # 각 섹션을 별도 시트로 생성
+        # 스타일 정의
+        header_fill = PatternFill(start_color="6B7FD7", end_color="8B9FE8", fill_type="solid")
+        header_font = Font(bold=True, color="FFFFFF", size=11)
+        section_header_fill = PatternFill(start_color="4A5568", end_color="4A5568", fill_type="solid")
+        section_header_font = Font(bold=True, color="FFFFFF", size=13)
+        border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='thin')
+        )
+        center_alignment = Alignment(horizontal='center', vertical='center')
+        left_alignment = Alignment(horizontal='left', vertical='center')
+        
+        row_num = 1
+        
+        # 모든 섹션을 하나의 시트에 추가
         for section_name, tables in sections.items():
             if not tables:
                 continue
             
-            # 시트 생성
-            ws = wb.create_sheet(title=section_name[:31])  # Excel 시트 이름은 31자 제한
+            # 섹션 헤더 추가 (첫 번째 섹션이 아니면 위에 빈 행 추가)
+            if row_num > 1:
+                row_num += 1  # 섹션 간 간격
             
-            # 스타일 정의
-            header_fill = PatternFill(start_color="6B7FD7", end_color="8B9FE8", fill_type="solid")
-            header_font = Font(bold=True, color="FFFFFF", size=11)
-            border = Border(
-                left=Side(style='thin'),
-                right=Side(style='thin'),
-                top=Side(style='thin'),
-                bottom=Side(style='thin')
-            )
-            center_alignment = Alignment(horizontal='center', vertical='center')
-            left_alignment = Alignment(horizontal='left', vertical='center')
+            # 섹션 헤더 셀 생성 (첫 번째 열에 섹션명, 나머지 열 병합)
+            section_header_cell = ws.cell(row=row_num, column=1, value=section_name)
+            section_header_cell.fill = section_header_fill
+            section_header_cell.font = section_header_font
+            section_header_cell.alignment = left_alignment
             
-            row_num = 1
+            # 섹션 헤더 행의 나머지 열 병합 (해당 섹션의 모든 테이블 중 최대 열 수 찾기)
+            section_max_cols = 0
+            for table in tables:
+                if table and len(table) > 0:
+                    section_max_cols = max(section_max_cols, len(table[0]))
+            
+            # 전체 최대 열 수와 비교하여 병합
+            if section_max_cols > 1:
+                ws.merge_cells(start_row=row_num, start_column=1, end_row=row_num, end_column=section_max_cols)
+            
+            row_num += 1
             
             # 각 표를 시트에 추가
             for table_idx, table in enumerate(tables):
@@ -932,23 +954,31 @@ def generate_excel():
                             else:  # 홀수 행 (실제로는 짝수 번째 행)
                                 cell.fill = PatternFill(start_color="E8F4FD", end_color="E8F4FD", fill_type="solid")
                 
-                # 열 너비 자동 조정
-                for col_idx in range(len(table[0]) if table else 0):
-                    max_length = 0
-                    col_letter = get_column_letter(col_idx + 1)
-                    
-                    for row in table:
-                        if col_idx < len(row):
-                            cell_value = str(row[col_idx])
-                            max_length = max(max_length, len(cell_value))
-                    
-                    # 최소 너비 설정
-                    adjusted_width = max(max_length + 2, 10)
-                    # 최대 너비 제한 (너무 넓지 않게)
-                    adjusted_width = min(adjusted_width, 50)
-                    ws.column_dimensions[col_letter].width = adjusted_width
-                
                 row_num += len(table)
+        
+        # 모든 열의 너비 자동 조정 (모든 테이블을 고려)
+        max_cols = 0
+        for tables in sections.values():
+            for table in tables:
+                if table:
+                    max_cols = max(max_cols, len(table[0]))
+        
+        for col_idx in range(max_cols):
+            max_length = 0
+            col_letter = get_column_letter(col_idx + 1)
+            
+            # 해당 열의 모든 셀을 확인하여 최대 길이 찾기
+            for row in ws.iter_rows(min_row=1, max_row=row_num, min_col=col_idx + 1, max_col=col_idx + 1):
+                for cell in row:
+                    if cell.value:
+                        cell_value = str(cell.value)
+                        max_length = max(max_length, len(cell_value))
+            
+            # 최소 너비 설정
+            adjusted_width = max(max_length + 2, 10)
+            # 최대 너비 제한 (너무 넓지 않게)
+            adjusted_width = min(adjusted_width, 50)
+            ws.column_dimensions[col_letter].width = adjusted_width
         
         # 메모리에 Excel 파일 저장
         excel_buffer = io.BytesIO()
